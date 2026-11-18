@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
 generate_site.py
-Generates an eye-safe, strain-free standalone static dashboard (index.html)
-from SQLite database (editorials.db) with multi-dimensional filtering
-(day-wise, source-wise, theme, scope, and live search).
-Includes Warm Paper (Eye-Care), Daylight, and Night modes, with font-size zoom controls.
+Generates an eye-safe, strain-free, mobile-optimized standalone static dashboard (index.html)
+from SQLite database (editorials.db).
+Mobile-Friendly:
+- Bulky sidebar hidden on mobile, replaced by compact mobile dropdowns.
+- Large non-link stat cards hidden on mobile, replaced by a 1-line compact ticker.
+- Desktop keeps the full sidebar, normal stat cards, pills, and archive lists.
+- Eye-Care Warm Paper (Sepia), Daylight, and Night modes with font zoom.
 """
 
 import os
@@ -54,7 +57,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             --bg-highlight: #EDE3D4;
             --border-card: #E4D9C5;
             --border-subtle: #EBE1D0;
-            --text-primary: #24292F;      /* Soft deep charcoal - eliminates glare */
+            --text-primary: #24292F;      /* Soft deep charcoal - zero harsh glare */
             --text-secondary: #4A5568;    /* High contrast secondary */
             --text-muted: #64748B;
             --accent-primary: #4338CA;
@@ -123,10 +126,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border-color: var(--border-subtle);
         }
 
-        .text-primary-var { color: var(--text-primary); }
-        .text-secondary-var { color: var(--text-secondary); }
-        .text-muted-var { color: var(--text-muted); }
-
         /* Font Scaling Modes */
         body.font-scale-sm {
             --fs-body: 0.9375rem;    /* 15px */
@@ -159,60 +158,62 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             line-height: 1.35;
         }
 
-        /* Scrollbars */
-        ::-webkit-scrollbar { width: 7px; height: 7px; }
-        ::-webkit-scrollbar-track { background: var(--bg-subtle); }
-        ::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        /* Hide horizontal scrollbar but preserve scrollability */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="theme-warm font-scale-md antialiased min-h-screen flex flex-col">
 
     <!-- Top Sticky Header -->
     <header class="sticky top-0 z-40 border-b backdrop-blur-md transition duration-200" style="background-color: var(--bg-header); border-color: var(--border-card);">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
                 
                 <!-- Logo & Branding -->
-                <div class="flex items-center space-x-3.5">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md">
-                        <i class="fa-solid fa-book-open-reader text-xl"></i>
+                <div class="flex items-center space-x-2.5 sm:space-x-3.5">
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md flex-shrink-0">
+                        <i class="fa-solid fa-book-open-reader text-lg sm:text-xl"></i>
                     </div>
                     <div>
-                        <div class="flex items-center space-x-2.5">
-                            <h1 class="text-xl sm:text-2xl font-black tracking-tight" style="color: var(--text-primary);">Editorial Intellect</h1>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border" style="background-color: var(--bg-subtle); color: var(--accent-primary); border-color: var(--border-card);">
-                                <i class="fa-solid fa-shield-halved mr-1 text-[11px]"></i> Eye-Safe Reader
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-base sm:text-2xl font-black tracking-tight" style="color: var(--text-primary);">Editorial Intellect</h1>
+                            <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border" style="background-color: var(--bg-subtle); color: var(--accent-primary); border-color: var(--border-card);">
+                                <i class="fa-solid fa-shield-halved mr-1 text-[11px]"></i> Eye-Safe
                             </span>
                         </div>
-                        <p class="text-xs sm:text-sm font-medium" style="color: var(--text-muted);">
-                            Daily Multi-Source Editorial Synthesis & Policy Analysis
+                        <p class="text-[11px] sm:text-xs font-medium line-clamp-1" style="color: var(--text-muted);">
+                            Daily Multi-Source Editorial Synthesis
                         </p>
                     </div>
                 </div>
 
                 <!-- Eye Comfort Controls (Theme & Font Size) -->
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-1.5 sm:space-x-3">
                     
                     <!-- Font Zoom Controls -->
-                    <div class="hidden sm:flex items-center rounded-xl p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);" title="Adjust Text Size">
-                        <span class="text-xs font-bold px-2" style="color: var(--text-muted);">Text:</span>
-                        <button onclick="setFontScale('sm')" id="fontBtn-sm" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A-</button>
-                        <button onclick="setFontScale('md')" id="fontBtn-md" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A</button>
-                        <button onclick="setFontScale('lg')" id="fontBtn-lg" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A+</button>
+                    <div class="flex items-center rounded-xl p-0.5 sm:p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);" title="Adjust Text Size">
+                        <button onclick="setFontScale('sm')" id="fontBtn-sm" class="px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition">A-</button>
+                        <button onclick="setFontScale('md')" id="fontBtn-md" class="px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition">A</button>
+                        <button onclick="setFontScale('lg')" id="fontBtn-lg" class="px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition">A+</button>
                     </div>
 
                     <!-- Theme Switcher Pills -->
-                    <div class="flex items-center rounded-xl p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
-                        <button onclick="setTheme('warm')" id="themeBtn-warm" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Warm Paper (Kindle Sepia Mode - Blue Light Free)">
+                    <div class="flex items-center rounded-xl p-0.5 sm:p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                        <button onclick="setTheme('warm')" id="themeBtn-warm" class="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1 transition" title="Warm Paper (Kindle Sepia Mode)">
                             <i class="fa-solid fa-book text-amber-600"></i>
-                            <span class="hidden md:inline">Warm Paper</span>
+                            <span class="hidden md:inline">Warm</span>
                         </button>
-                        <button onclick="setTheme('day')" id="themeBtn-day" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Clean Daylight Mode">
+                        <button onclick="setTheme('day')" id="themeBtn-day" class="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1 transition" title="Clean Daylight Mode">
                             <i class="fa-solid fa-sun text-amber-500"></i>
                             <span class="hidden md:inline">Day</span>
                         </button>
-                        <button onclick="setTheme('dark')" id="themeBtn-dark" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Night / OLED Dark Mode">
+                        <button onclick="setTheme('dark')" id="themeBtn-dark" class="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1 transition" title="Night / Dark Mode">
                             <i class="fa-solid fa-moon text-indigo-400"></i>
                             <span class="hidden md:inline">Night</span>
                         </button>
@@ -225,56 +226,57 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </header>
 
     <!-- Main Container -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex-1">
         
-        <!-- Quick Insight Stats Bar -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+        <!-- Desktop Summary Stat Cards (Hidden on Mobile to Save Vertical Space) -->
+        <div class="hidden lg:grid lg:grid-cols-4 gap-4 mb-8">
+            <div class="card-surface p-5 rounded-2xl border flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl" style="background-color: var(--accent-bg); color: var(--accent-primary);">
                     <i class="fa-solid fa-newspaper"></i>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight" id="statTotalArticles">0</div>
-                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Editorials Synthesized</div>
+                    <div class="text-3xl font-extrabold tracking-tight" id="statTotalArticles">0</div>
+                    <div class="text-sm font-semibold" style="color: var(--text-muted);">Editorials Synthesized</div>
                 </div>
             </div>
 
-            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+            <div class="card-surface p-5 rounded-2xl border flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-rose-50 text-rose-700 border border-rose-200">
                     <i class="fa-solid fa-language"></i>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rose-700" id="statEenaduCount">0</div>
-                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">ఈనాడు (Eenadu Telugu)</div>
+                    <div class="text-3xl font-extrabold tracking-tight text-rose-700" id="statEenaduCount">0</div>
+                    <div class="text-sm font-semibold" style="color: var(--text-muted);">ఈనాడు (Eenadu Telugu)</div>
                 </div>
             </div>
 
-            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+            <div class="card-surface p-5 rounded-2xl border flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-blue-50 text-blue-700 border border-blue-200">
                     <i class="fa-solid fa-feather-pointed"></i>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-700" id="statEnglishCount">0</div>
-                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Hindu, Express & PIB</div>
+                    <div class="text-3xl font-extrabold tracking-tight text-blue-700" id="statEnglishCount">0</div>
+                    <div class="text-sm font-semibold" style="color: var(--text-muted);">Hindu, Express & PIB</div>
                 </div>
             </div>
 
-            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+            <div class="card-surface p-5 rounded-2xl border flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
                     <i class="fa-solid fa-layer-group"></i>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-700" id="statThemesCount">0</div>
-                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Governance Themes</div>
+                    <div class="text-3xl font-extrabold tracking-tight text-emerald-700" id="statThemesCount">0</div>
+                    <div class="text-sm font-semibold" style="color: var(--text-muted);">Governance Themes</div>
                 </div>
             </div>
         </div>
 
         <!-- 2-Column Responsive Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
             
-            <!-- Left Sidebar Navigation -->
-            <aside class="lg:col-span-1 space-y-6">
+            <!-- Left Sidebar Navigation (Desktop ONLY: hidden lg:block) -->
+            <!-- Prevents the bulky sidebar from pushing articles off-screen on mobile -->
+            <aside class="hidden lg:block lg:col-span-1 space-y-6">
                 
                 <!-- Day-Wise Date Navigator -->
                 <div class="card-surface rounded-2xl border p-5">
@@ -284,7 +286,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     </h2>
                     
                     <div class="space-y-1.5" id="dateListContainer">
-                        <!-- Populated by JS -->
+                        <!-- Populated by JS for Desktop -->
                     </div>
                 </div>
 
@@ -298,7 +300,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     </div>
                     
                     <div class="flex flex-wrap gap-2" id="themePillsContainer">
-                        <!-- Populated by JS -->
+                        <!-- Populated by JS for Desktop -->
                     </div>
                 </div>
 
@@ -308,58 +310,103 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         <i class="fa-solid fa-compass mr-2" style="color: var(--accent-primary);"></i> Scope
                     </h2>
                     <div class="flex flex-wrap gap-2" id="scopePillsContainer">
-                        <!-- Populated by JS -->
+                        <!-- Populated by JS for Desktop -->
                     </div>
                 </div>
 
-                <!-- Reading Tip -->
+                <!-- Reading Advice -->
                 <div class="rounded-2xl p-5 border text-xs leading-relaxed" style="background-color: var(--bg-subtle); border-color: var(--border-card); color: var(--text-secondary);">
                     <div class="font-bold mb-1.5 flex items-center text-sm" style="color: var(--text-primary);">
                         <i class="fa-solid fa-eye text-emerald-600 mr-2"></i> Eye Comfort Advice
                     </div>
-                    Switch between <strong>Warm Paper</strong> for ambient daylight and <strong>Night</strong> mode in dimly lit rooms to minimize digital eye fatigue while reading extended analyses.
+                    Switch to <strong>Warm Paper</strong> mode for extended reading sessions to reduce digital optical strain.
                 </div>
 
             </aside>
 
-            <!-- Main Content: Articles & Search -->
-            <main class="lg:col-span-3 space-y-6">
+            <!-- Main Content Area -->
+            <main class="lg:col-span-3 space-y-4 sm:space-y-6">
                 
+                <!-- Mobile Compact Ticker Bar (Mobile Only: lg:hidden) -->
+                <div class="block lg:hidden card-surface rounded-xl border px-3 py-2 flex items-center justify-between text-xs font-semibold">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span><strong id="statMobileTotal" class="font-bold text-sm">0</strong> Editorials</span>
+                    </div>
+                    <div class="flex items-center space-x-2.5 text-[11px]" style="color: var(--text-muted);">
+                        <span class="text-rose-700 font-bold">ఈనాడు: <span id="statMobileEenadu">0</span></span>
+                        <span>•</span>
+                        <span class="text-blue-700 font-bold">English: <span id="statMobileEnglish">0</span></span>
+                    </div>
+                </div>
+
+                <!-- Mobile Dropdown Controls (Mobile Only: lg:hidden) -->
+                <!-- Replaces the bulky sidebar with sleek, compact dropdowns -->
+                <div class="block lg:hidden card-surface rounded-xl border p-3.5 space-y-3" style="border-color: var(--border-card);">
+                    <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">
+                        <span><i class="fa-solid fa-sliders mr-1.5" style="color: var(--accent-primary);"></i> Filters (Dropdown)</span>
+                        <button onclick="resetAllFilters()" class="text-xs font-bold hover:underline" style="color: var(--accent-primary);">Reset All</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <!-- Date Dropdown -->
+                        <div>
+                            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Date Archive:</label>
+                            <select id="mobileDateSelect" onchange="selectDate(this.value)" class="w-full py-2 px-2.5 rounded-lg border font-semibold text-xs outline-none" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
+                            </select>
+                        </div>
+
+                        <!-- Theme Dropdown -->
+                        <div>
+                            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Theme Filter:</label>
+                            <select id="mobileThemeSelect" onchange="selectTheme(this.value)" class="w-full py-2 px-2.5 rounded-lg border font-semibold text-xs outline-none" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
+                            </select>
+                        </div>
+
+                        <!-- Scope Dropdown -->
+                        <div>
+                            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Geographic Scope:</label>
+                            <select id="mobileScopeSelect" onchange="selectScope(this.value)" class="w-full py-2 px-2.5 rounded-lg border font-semibold text-xs outline-none" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Search & Source Tabs Bar -->
-                <div class="card-surface rounded-2xl border p-5 space-y-4">
+                <div class="card-surface rounded-2xl border p-4 sm:p-5 space-y-3.5 sm:space-y-4">
                     
                     <!-- Search Input -->
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base" style="color: var(--text-muted);">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 sm:pl-4 flex items-center pointer-events-none text-sm sm:text-base" style="color: var(--text-muted);">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </div>
                         <input 
                             type="text" 
                             id="searchInput" 
                             oninput="onSearchChange()" 
-                            placeholder="Search editorials by title, key terms, Supreme Court verdicts, acts, or themes..." 
-                            class="w-full pl-11 pr-11 py-3.5 rounded-xl border text-sm sm:text-base font-medium outline-none transition focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Search editorials, Supreme Court verdicts, acts..." 
+                            class="w-full pl-10 sm:pl-11 pr-10 py-2.5 sm:py-3 rounded-xl border text-xs sm:text-base font-medium outline-none transition focus:ring-2 focus:ring-indigo-500"
                             style="background-color: var(--bg-main); color: var(--text-primary); border-color: var(--border-card);"
                         >
                         <button 
                             id="clearSearchBtn" 
                             onclick="clearSearch()" 
-                            class="hidden absolute inset-y-0 right-0 pr-4 flex items-center hover:opacity-80 transition"
+                            class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center hover:opacity-80 transition"
                             style="color: var(--text-muted);"
                         >
-                            <i class="fa-solid fa-circle-xmark text-lg"></i>
+                            <i class="fa-solid fa-circle-xmark text-base"></i>
                         </button>
                     </div>
 
                     <!-- Source Selection Tabs -->
-                    <div class="flex items-center justify-between border-t pt-4 flex-wrap gap-3" style="border-color: var(--border-subtle);">
-                        <div class="flex flex-wrap gap-2" id="sourceTabsContainer">
+                    <div class="flex items-center justify-between border-t pt-3 flex-wrap gap-2.5" style="border-color: var(--border-subtle);">
+                        <div class="flex flex-wrap gap-1.5 sm:gap-2" id="sourceTabsContainer">
                             <!-- Populated by JS -->
                         </div>
 
-                        <div class="text-xs sm:text-sm font-semibold flex items-center space-x-2" style="color: var(--text-muted);">
-                            <span>Showing <strong class="font-extrabold text-sm sm:text-base" style="color: var(--text-primary);" id="filteredCount">0</strong> articles</span>
-                            <button onclick="resetAllFilters()" class="text-xs font-bold hover:underline ml-2" style="color: var(--accent-primary);">
+                        <div class="text-xs font-semibold flex items-center space-x-2" style="color: var(--text-muted);">
+                            <span>Showing <strong class="font-extrabold text-xs sm:text-sm" style="color: var(--text-primary);" id="filteredCount">0</strong> articles</span>
+                            <button onclick="resetAllFilters()" class="text-xs font-bold hover:underline ml-1 hidden sm:inline" style="color: var(--accent-primary);">
                                 Clear All
                             </button>
                         </div>
@@ -368,19 +415,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 </div>
 
                 <!-- Articles List Container -->
-                <div id="articlesList" class="space-y-6">
+                <div id="articlesList" class="space-y-4 sm:space-y-6">
                     <!-- Populated by JS -->
                 </div>
 
                 <!-- Empty State -->
-                <div id="emptyState" class="hidden card-surface rounded-2xl border p-12 text-center space-y-3">
-                    <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-2xl" style="background-color: var(--bg-subtle); color: var(--text-muted);">
+                <div id="emptyState" class="hidden card-surface rounded-2xl border p-8 sm:p-12 text-center space-y-3">
+                    <div class="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-xl" style="background-color: var(--bg-subtle); color: var(--text-muted);">
                         <i class="fa-solid fa-filter-circle-xmark"></i>
                     </div>
-                    <h3 class="text-lg font-bold" style="color: var(--text-primary);">No Editorials Found</h3>
-                    <p class="text-sm max-w-md mx-auto" style="color: var(--text-muted);">No articles matched the selected date, source, theme, or search criteria. Try clearing search filters.</p>
-                    <button onclick="resetAllFilters()" class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
-                        Reset Filters
+                    <h3 class="text-base sm:text-lg font-bold" style="color: var(--text-primary);">No Editorials Found</h3>
+                    <p class="text-xs sm:text-sm max-w-md mx-auto" style="color: var(--text-muted);">No articles matched the selected date, source, theme, or search criteria.</p>
+                    <button onclick="resetAllFilters()" class="px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                        Reset All Filters
                     </button>
                 </div>
 
@@ -391,15 +438,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
 
     <!-- Footer -->
-    <footer class="mt-16 border-t py-8 text-center text-xs sm:text-sm font-medium transition duration-200" style="background-color: var(--bg-header); border-color: var(--border-card); color: var(--text-muted);">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="mt-12 sm:mt-16 border-t py-6 sm:py-8 text-center text-xs sm:text-sm font-medium transition duration-200" style="background-color: var(--bg-header); border-color: var(--border-card); color: var(--text-muted);">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div>
                 <strong>Editorial Intellect</strong> — Autonomous Daily Multi-Source Policy Synthesizer
             </div>
-            <div class="flex items-center space-x-4">
-                <span>Autonomous Pipeline</span>
+            <div class="flex items-center space-x-3 text-xs">
+                <span>Autonomous Cloud Pipeline</span>
                 <span>•</span>
-                <span>Hosted on GitHub Pages</span>
+                <span>GitHub Pages</span>
             </div>
         </div>
     </footer>
@@ -425,28 +472,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 label: 'ఈనాడు (Eenadu)',
                 icon: 'fa-language',
                 badgeBg: 'bg-rose-50 text-rose-800 border-rose-300 font-bold',
-                headerBorder: 'border-l-[5px] border-rose-600',
+                headerBorder: 'border-l-[4px] sm:border-l-[5px] border-rose-600',
                 btnClass: 'hover:bg-rose-50 hover:text-rose-700'
             },
             'The Hindu': {
                 label: 'The Hindu',
                 icon: 'fa-landmark',
                 badgeBg: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
-                headerBorder: 'border-l-[5px] border-slate-900',
+                headerBorder: 'border-l-[4px] sm:border-l-[5px] border-slate-900',
                 btnClass: 'hover:bg-blue-50 hover:text-blue-900'
             },
             'Indian Express': {
                 label: 'Indian Express',
                 icon: 'fa-feather',
                 badgeBg: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
-                headerBorder: 'border-l-[5px] border-amber-600',
+                headerBorder: 'border-l-[4px] sm:border-l-[5px] border-amber-600',
                 btnClass: 'hover:bg-amber-50 hover:text-amber-800'
             },
             'PIB': {
-                label: 'PIB (Official)',
+                label: 'PIB Releases',
                 icon: 'fa-bullhorn',
                 badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
-                headerBorder: 'border-l-[5px] border-emerald-600',
+                headerBorder: 'border-l-[4px] sm:border-l-[5px] border-emerald-600',
                 btnClass: 'hover:bg-emerald-50 hover:text-emerald-800'
             }
         };
@@ -457,7 +504,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             localStorage.setItem('editorial_theme', mode);
             document.body.className = `theme-${mode} font-scale-${state.fontScale} antialiased min-h-screen flex flex-col`;
             
-            // Update active buttons
             ['warm', 'day', 'dark'].forEach(m => {
                 const btn = document.getElementById(`themeBtn-${m}`);
                 if (btn) {
@@ -496,17 +542,74 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         function updateStats() {
-            document.getElementById('statTotalArticles').innerText = RAW_EDITORIALS.length;
-            document.getElementById('statEenaduCount').innerText = RAW_EDITORIALS.filter(e => e.source === 'Eenadu').length;
-            document.getElementById('statEnglishCount').innerText = RAW_EDITORIALS.filter(e => e.source !== 'Eenadu').length;
-            
+            const total = RAW_EDITORIALS.length;
+            const eenaduCount = RAW_EDITORIALS.filter(e => e.source === 'Eenadu').length;
+            const englishCount = RAW_EDITORIALS.filter(e => e.source !== 'Eenadu').length;
             const themes = new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean));
-            document.getElementById('statThemesCount').innerText = themes.size;
+
+            // Desktop stats
+            const totalEl = document.getElementById('statTotalArticles');
+            if (totalEl) totalEl.innerText = total;
+            const eenaduEl = document.getElementById('statEenaduCount');
+            if (eenaduEl) eenaduEl.innerText = eenaduCount;
+            const engEl = document.getElementById('statEnglishCount');
+            if (engEl) engEl.innerText = englishCount;
+            const themesEl = document.getElementById('statThemesCount');
+            if (themesEl) themesEl.innerText = themes.size;
+
+            // Mobile ticker stats
+            const mobTotal = document.getElementById('statMobileTotal');
+            if (mobTotal) mobTotal.innerText = total;
+            const mobEenadu = document.getElementById('statMobileEenadu');
+            if (mobEenadu) mobEenadu.innerText = eenaduCount;
+            const mobEnglish = document.getElementById('statMobileEnglish');
+            if (mobEnglish) mobEnglish.innerText = englishCount;
+        }
+
+        // Populate Mobile Dropdowns (Theme, Date, Scope)
+        function renderMobileDropdowns() {
+            // Date dropdown
+            const dateSel = document.getElementById('mobileDateSelect');
+            if (dateSel) {
+                let dOpts = `<option value="ALL">All Available Dates (${RAW_EDITORIALS.length})</option>`;
+                AVAILABLE_DATES.forEach(dt => {
+                    const cnt = RAW_EDITORIALS.filter(e => e.date === dt).length;
+                    dOpts += `<option value="${dt}">${dt} (${cnt} articles)</option>`;
+                });
+                dateSel.innerHTML = dOpts;
+                dateSel.value = state.selectedDate;
+            }
+
+            // Theme dropdown
+            const themeSel = document.getElementById('mobileThemeSelect');
+            if (themeSel) {
+                const allThemes = Array.from(new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean))).sort();
+                let tOpts = `<option value="ALL">All Themes (${allThemes.length})</option>`;
+                allThemes.forEach(th => {
+                    tOpts += `<option value="${th}">${th}</option>`;
+                });
+                themeSel.innerHTML = tOpts;
+                themeSel.value = state.selectedTheme;
+            }
+
+            // Scope dropdown
+            const scopeSel = document.getElementById('mobileScopeSelect');
+            if (scopeSel) {
+                const allScopes = Array.from(new Set(RAW_EDITORIALS.map(e => e.scope).filter(Boolean))).sort();
+                let sOpts = `<option value="ALL">All Scopes</option>`;
+                allScopes.forEach(sc => {
+                    sOpts += `<option value="${sc}">${sc}</option>`;
+                });
+                scopeSel.innerHTML = sOpts;
+                scopeSel.value = state.selectedScope;
+            }
         }
 
         function renderDateList() {
             const container = document.getElementById('dateListContainer');
-            document.getElementById('dateArchiveCount').innerText = `${AVAILABLE_DATES.length} Days`;
+            if (!container) return;
+            const archiveEl = document.getElementById('dateArchiveCount');
+            if (archiveEl) archiveEl.innerText = `${AVAILABLE_DATES.length} Days`;
 
             let html = `
                 <button onclick="selectDate('ALL')" class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-between ${
@@ -539,6 +642,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function renderSourceTabs() {
             const container = document.getElementById('sourceTabsContainer');
+            if (!container) return;
             const sources = ['ALL', 'Eenadu', 'The Hindu', 'Indian Express', 'PIB'];
 
             let html = '';
@@ -552,13 +656,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }).length;
 
                 html += `
-                    <button onclick="selectSource('${src}')" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 ${
+                    <button onclick="selectSource('${src}')" class="px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1 sm:space-x-1.5 ${
                         isSelected
                             ? 'text-white bg-indigo-600 shadow-sm'
                             : 'border hover:opacity-85'
                     }" style="${isSelected ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">
                         <span>${label}</span>
-                        <span class="text-xs px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-indigo-800 text-white' : 'border'}" style="${isSelected ? '' : 'border-color: var(--border-card);'}">${count}</span>
+                        <span class="text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-indigo-800 text-white' : 'border'}" style="${isSelected ? '' : 'border-color: var(--border-card);'}">${count}</span>
                     </button>
                 `;
             });
@@ -568,6 +672,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function renderThemePills() {
             const container = document.getElementById('themePillsContainer');
+            if (!container) return;
             const allThemes = Array.from(new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean))).sort();
 
             let html = `
@@ -594,6 +699,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function renderScopePills() {
             const container = document.getElementById('scopePillsContainer');
+            if (!container) return;
             const allScopes = Array.from(new Set(RAW_EDITORIALS.map(e => e.scope).filter(Boolean))).sort();
 
             let html = `
@@ -620,6 +726,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function selectDate(dateStr) {
             state.selectedDate = dateStr;
+            const dateSel = document.getElementById('mobileDateSelect');
+            if (dateSel) dateSel.value = dateStr;
             renderDateList();
             renderSourceTabs();
             applyFilters();
@@ -633,6 +741,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function selectTheme(theme) {
             state.selectedTheme = theme;
+            const themeSel = document.getElementById('mobileThemeSelect');
+            if (themeSel) themeSel.value = theme;
             renderThemePills();
             applyFilters();
         }
@@ -643,6 +753,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function selectScope(sc) {
             state.selectedScope = sc;
+            const scopeSel = document.getElementById('mobileScopeSelect');
+            if (scopeSel) scopeSel.value = sc;
             renderScopePills();
             applyFilters();
         }
@@ -666,6 +778,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             state.selectedTheme = 'ALL';
             state.selectedScope = 'ALL';
             clearSearch();
+
+            const dateSel = document.getElementById('mobileDateSelect');
+            if (dateSel) dateSel.value = state.selectedDate;
+            const themeSel = document.getElementById('mobileThemeSelect');
+            if (themeSel) themeSel.value = 'ALL';
+            const scopeSel = document.getElementById('mobileScopeSelect');
+            if (scopeSel) scopeSel.value = 'ALL';
+
             renderSourceTabs();
             renderThemePills();
             renderScopePills();
@@ -748,7 +868,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     label: item.source,
                     icon: 'fa-newspaper',
                     badgeBg: 'bg-slate-100 text-slate-800 border-slate-300 font-bold',
-                    headerBorder: 'border-l-[5px] border-slate-600'
+                    headerBorder: 'border-l-[4px] sm:border-l-[5px] border-slate-600'
                 };
 
                 const isTelugu = item.source === 'Eenadu';
@@ -759,7 +879,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 if (Array.isArray(item.key_bullet_points) && item.key_bullet_points.length > 0) {
                     bulletsHtml = item.key_bullet_points.map(pt => `
                         <li class="flex items-start reading-bullet font-medium" style="color: var(--text-primary);">
-                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full mr-3 mt-1 flex-shrink-0 text-xs font-bold" style="background-color: var(--accent-bg); color: var(--accent-primary);">
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full mr-2.5 sm:mr-3 mt-0.5 sm:mt-1 flex-shrink-0 text-xs font-bold" style="background-color: var(--accent-bg); color: var(--accent-primary);">
                                 <i class="fa-solid fa-check text-[10px]"></i>
                             </span>
                             <span>${pt}</span>
@@ -783,19 +903,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 let impactHtml = '';
                 if (shortImpact || longImpact) {
                     impactHtml = `
-                        <div class="rounded-2xl p-5 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
-                            <h5 class="text-xs font-bold uppercase tracking-wider mb-3 flex items-center" style="color: var(--accent-primary);">
+                        <div class="rounded-xl sm:rounded-2xl p-4 sm:p-5 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                            <h5 class="text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3 flex items-center" style="color: var(--accent-primary);">
                                 <i class="fa-solid fa-chart-line mr-2"></i> Strategic Impact Assessment
                             </h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                                 ${shortImpact ? `
-                                    <div class="card-surface p-4 rounded-xl border">
+                                    <div class="card-surface p-3.5 sm:p-4 rounded-xl border">
                                         <span class="font-bold block mb-1 text-emerald-700">⚡ Short-Term Impact:</span>
                                         <p class="leading-relaxed font-medium" style="color: var(--text-secondary);">${shortImpact}</p>
                                     </div>
                                 ` : ''}
                                 ${longImpact ? `
-                                    <div class="card-surface p-4 rounded-xl border">
+                                    <div class="card-surface p-3.5 sm:p-4 rounded-xl border">
                                         <span class="font-bold block mb-1 text-indigo-700">🌐 Long-Term / Structural:</span>
                                         <p class="leading-relaxed font-medium" style="color: var(--text-secondary);">${longImpact}</p>
                                     </div>
@@ -806,48 +926,48 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }
 
                 html += `
-                    <article class="card-surface rounded-2xl border transition duration-200 overflow-hidden ${srcMeta.headerBorder}">
+                    <article class="card-surface rounded-xl sm:rounded-2xl border transition duration-200 overflow-hidden ${srcMeta.headerBorder}">
                         
                         <!-- Top Metadata Header -->
-                        <div class="p-6 sm:p-7 pb-4 border-b" style="border-color: var(--border-subtle);">
-                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3.5">
+                        <div class="p-4 sm:p-7 pb-3 sm:pb-4 border-b" style="border-color: var(--border-subtle);">
+                            <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
                                 
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs border ${srcMeta.badgeBg}">
-                                        <i class="fa-solid ${srcMeta.icon} mr-1.5 text-xs"></i> ${srcMeta.label}
+                                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span class="inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs border ${srcMeta.badgeBg}">
+                                        <i class="fa-solid ${srcMeta.icon} mr-1 text-xs"></i> ${srcMeta.label}
                                     </span>
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
-                                        <i class="fa-regular fa-calendar mr-1.5 text-xs"></i> ${item.date}
+                                    <span class="inline-flex items-center px-2 py-0.5 sm:py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
+                                        <i class="fa-regular fa-calendar mr-1 text-xs"></i> ${item.date}
                                     </span>
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--accent-bg); color: var(--accent-primary); border-color: var(--accent-border);">
+                                    <span class="inline-flex items-center px-2 py-0.5 sm:py-1 rounded-lg text-xs font-bold border" style="background-color: var(--accent-bg); color: var(--accent-primary); border-color: var(--accent-border);">
                                         ${item.theme}
                                     </span>
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
+                                    <span class="inline-flex items-center px-2 py-0.5 sm:py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
                                         <i class="fa-solid fa-location-dot mr-1 text-xs"></i> ${item.scope || 'National'}
                                     </span>
                                 </div>
 
-                                <div class="flex items-center space-x-2.5">
-                                    <button onclick="copySummary(${id})" class="p-2 rounded-lg border transition relative hover:opacity-80" style="background-color: var(--bg-subtle); border-color: var(--border-card); color: var(--text-secondary);" title="Copy Summary Text">
-                                        <i class="fa-regular fa-copy text-sm"></i>
+                                <div class="flex items-center space-x-1.5 sm:space-x-2.5">
+                                    <button onclick="copySummary(${id})" class="p-1.5 sm:p-2 rounded-lg border transition relative hover:opacity-80" style="background-color: var(--bg-subtle); border-color: var(--border-card); color: var(--text-secondary);" title="Copy Summary Text">
+                                        <i class="fa-regular fa-copy text-xs sm:text-sm"></i>
                                         <span id="copyTip-${id}" class="hidden absolute -bottom-8 right-0 bg-slate-900 text-white text-xs px-2 py-0.5 rounded shadow z-10 whitespace-nowrap">Copied!</span>
                                     </button>
-                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition border hover:opacity-85" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
-                                        <span>Original Source</span>
-                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 px-2.5 sm:px-3.5 py-1 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition border hover:opacity-85" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
+                                        <span>Original</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] sm:text-xs"></i>
                                     </a>
                                 </div>
 
                             </div>
 
                             <!-- Editorial Headlines -->
-                            <div class="mt-2">
+                            <div class="mt-1 sm:mt-2">
                                 ${isTelugu ? `
-                                    <h3 class="card-headline font-bold telugu-text mb-1.5" style="color: var(--text-primary);">
+                                    <h3 class="card-headline font-bold telugu-text mb-1" style="color: var(--text-primary);">
                                         ${item.original_title}
                                     </h3>
-                                    <h4 class="text-sm sm:text-base font-semibold flex items-baseline flex-wrap" style="color: var(--text-secondary);">
-                                        <span class="text-xs font-bold uppercase tracking-wider mr-2 text-indigo-600">[Translation]</span>
+                                    <h4 class="text-xs sm:text-base font-semibold flex items-baseline flex-wrap" style="color: var(--text-secondary);">
+                                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider mr-1.5 text-indigo-600">[Translation]</span>
                                         ${item.english_title}
                                     </h4>
                                 ` : `
@@ -859,10 +979,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         </div>
 
                         <!-- Core Content Body -->
-                        <div class="p-6 sm:p-7 space-y-6">
+                        <div class="p-4 sm:p-7 space-y-4 sm:space-y-6">
                             
                             <!-- Executive Summary Highlight Box -->
-                            <div class="rounded-2xl p-5 sm:p-6 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                            <div class="rounded-xl sm:rounded-2xl p-4 sm:p-6 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
                                 <h5 class="text-xs font-bold uppercase tracking-wider mb-2 flex items-center" style="color: var(--accent-primary);">
                                     <i class="fa-solid fa-quote-left mr-2"></i> Executive Summary
                                 </h5>
@@ -874,27 +994,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                             <!-- Key Analytical Takeaways -->
                             ${bulletsHtml ? `
                                 <div>
-                                    <h5 class="text-xs font-bold uppercase tracking-wider mb-3.5 flex items-center" style="color: var(--text-muted);">
+                                    <h5 class="text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3.5 flex items-center" style="color: var(--text-muted);">
                                         <i class="fa-solid fa-list-check mr-2 text-emerald-600"></i> Crucial Takeaways & Arguments
                                     </h5>
-                                    <ul class="space-y-3.5 pl-0.5">
+                                    <ul class="space-y-2.5 sm:space-y-3.5 pl-0.5">
                                         ${bulletsHtml}
                                     </ul>
                                 </div>
                             ` : ''}
 
                             <!-- Expandable Deep Analysis & Characteristics Section -->
-                            <div id="details-${id}" class="${isExpanded ? '' : 'hidden'} space-y-5 pt-4 border-t" style="border-color: var(--border-subtle);">
+                            <div id="details-${id}" class="${isExpanded ? '' : 'hidden'} space-y-4 sm:space-y-5 pt-3 sm:pt-4 border-t" style="border-color: var(--border-subtle);">
                                 
                                 <!-- Impact Matrix -->
                                 ${impactHtml}
 
                                 <!-- Characteristics & Acts Grid -->
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
                                     
                                     <!-- Tone & Stance -->
-                                    <div class="card-surface p-4 rounded-xl border">
-                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                    <div class="card-surface p-3.5 sm:p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1" style="color: var(--text-secondary);">
                                             <i class="fa-solid fa-scale-balanced mr-1 text-indigo-500"></i> Editorial Tone:
                                         </span>
                                         <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
@@ -903,8 +1023,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                     </div>
 
                                     <!-- Acts / Articles Cited -->
-                                    <div class="card-surface p-4 rounded-xl border">
-                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                    <div class="card-surface p-3.5 sm:p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1" style="color: var(--text-secondary);">
                                             <i class="fa-solid fa-gavel mr-1 text-indigo-500"></i> Constitutional / Legal Citations:
                                         </span>
                                         <div class="flex flex-wrap gap-1.5">
@@ -915,8 +1035,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                     </div>
 
                                     <!-- Exam / Policy Relevance -->
-                                    <div class="card-surface p-4 rounded-xl border">
-                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                    <div class="card-surface p-3.5 sm:p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1" style="color: var(--text-secondary);">
                                             <i class="fa-solid fa-graduation-cap mr-1 text-indigo-500"></i> Exam / Syllabus Relevance:
                                         </span>
                                         <span class="font-medium text-xs sm:text-sm leading-relaxed" style="color: var(--text-primary);">${examRel || 'General Governance / GS Paper'}</span>
@@ -926,13 +1046,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                                 <!-- Key Data & Statistics -->
                                 ${Array.isArray(stats) && stats.length > 0 ? `
-                                    <div class="card-surface p-4 sm:p-5 rounded-xl border text-xs sm:text-sm">
-                                        <span class="font-bold block mb-2 text-amber-800">
+                                    <div class="card-surface p-3.5 sm:p-5 rounded-xl border text-xs sm:text-sm">
+                                        <span class="font-bold block mb-1.5 sm:mb-2 text-amber-800">
                                             <i class="fa-solid fa-chart-pie mr-1 text-amber-600"></i> Cited Statistics & Key Data Points:
                                         </span>
                                         <div class="flex flex-wrap gap-2">
                                             ${stats.map(s => `
-                                                <span class="inline-flex items-center px-3 py-1 rounded-lg font-mono text-xs font-bold border bg-amber-50 text-amber-900 border-amber-200">
+                                                <span class="inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg font-mono text-xs font-bold border bg-amber-50 text-amber-900 border-amber-200">
                                                     📊 ${s}
                                                 </span>
                                             `).join('')}
@@ -943,11 +1063,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                             </div>
 
                             <!-- Card Footer Toggle -->
-                            <div class="pt-3 flex items-center justify-between border-t" style="border-color: var(--border-subtle);">
+                            <div class="pt-2.5 sm:pt-3 flex items-center justify-between border-t" style="border-color: var(--border-subtle);">
                                 <button 
                                     id="toggleBtn-${id}" 
                                     onclick="toggleCard(${id})" 
-                                    class="text-xs sm:text-sm font-bold transition flex items-center space-x-2 py-1.5 px-3 rounded-lg border hover:opacity-85"
+                                    class="text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 py-1 px-2.5 sm:px-3 rounded-lg border hover:opacity-85"
                                     style="background-color: var(--bg-subtle); color: var(--accent-primary); border-color: var(--border-card);"
                                 >
                                     <span>${isExpanded ? 'Show Less' : 'Deep Analysis & Impact'}</span>
@@ -971,6 +1091,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             setTheme(state.theme);
             setFontScale(state.fontScale);
             updateStats();
+            renderMobileDropdowns();
             renderDateList();
             renderSourceTabs();
             renderThemePills();
