@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 generate_site.py
-Generates a modern, fast, responsive standalone static dashboard (index.html)
+Generates an eye-safe, strain-free standalone static dashboard (index.html)
 from SQLite database (editorials.db) with multi-dimensional filtering
-(day-wise, source-wise, theme, and live search).
-Can be opened directly in any browser (no web server / port required).
+(day-wise, source-wise, theme, scope, and live search).
+Includes Warm Paper (Eye-Care), Daylight, and Night modes, with font-size zoom controls.
 """
 
 import os
@@ -34,7 +34,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Editorial Aggregator & Analysis Dashboard</title>
+    <title>Daily Editorial Intelligence | Eye-Safe Policy Reader</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -44,375 +44,492 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Roboto', 'sans-serif'],
-                        roboto: ['Roboto', 'sans-serif'],
-                        telugu: ['Noto Sans Telugu', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            eenadu: '#B91C1C',
-                            eenaduBg: '#FEF2F2',
-                            hindu: '#0F172A',
-                            hinduBg: '#F8FAFC',
-                            express: '#C2410C',
-                            expressBg: '#FFF7ED',
-                            pib: '#0D9488',
-                            pibBg: '#F0FDFA',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
+        /* Eye-Safe Reading Theme Palettes */
+        :root, body.theme-warm {
+            --bg-main: #FAF6EF;          /* Gentle Natural Ivory Paper */
+            --bg-header: #FFFDF9;
+            --bg-card: #FFFDF9;
+            --bg-subtle: #F3ECE0;
+            --bg-highlight: #EDE3D4;
+            --border-card: #E4D9C5;
+            --border-subtle: #EBE1D0;
+            --text-primary: #24292F;      /* Soft deep charcoal - eliminates glare */
+            --text-secondary: #4A5568;    /* High contrast secondary */
+            --text-muted: #64748B;
+            --accent-primary: #4338CA;
+            --accent-bg: #EEF2FF;
+            --accent-border: #C7D2FE;
+            --card-shadow: 0 2px 5px rgba(60, 45, 20, 0.05);
+        }
+
+        body.theme-day {
+            --bg-main: #F8FAFC;          /* Crisp Daylight */
+            --bg-header: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F1F5F9;
+            --bg-highlight: #E2E8F0;
+            --border-card: #CBD5E1;
+            --border-subtle: #E2E8F0;
+            --text-primary: #0F172A;      /* Deepest slate */
+            --text-secondary: #334155;
+            --text-muted: #64748B;
+            --accent-primary: #3730A3;
+            --accent-bg: #EEF2FF;
+            --accent-border: #C7D2FE;
+            --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        body.theme-dark {
+            --bg-main: #0F172A;          /* Deep Twilight Slate - Zero Blue Light */
+            --bg-header: #1E293B;
+            --bg-card: #1E293B;
+            --bg-subtle: #162032;
+            --bg-highlight: #283548;
+            --border-card: #334155;
+            --border-subtle: #283548;
+            --text-primary: #F1F5F9;      /* Crisp soft reading white */
+            --text-secondary: #CBD5E1;    /* High readability silver */
+            --text-muted: #94A3B8;
+            --accent-primary: #818CF8;
+            --accent-bg: #232D48;
+            --accent-border: #3B4B75;
+            --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+        }
+
+        /* Typography & Core Styles */
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.7;
+            letter-spacing: 0.012em;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+
         .telugu-text {
-            font-family: 'Noto Sans Telugu', sans-serif;
+            font-family: 'Noto Sans Telugu', 'Roboto', sans-serif;
+            line-height: 1.85;
         }
+
+        .card-surface {
+            background-color: var(--bg-card);
+            border-color: var(--border-card);
+            box-shadow: var(--card-shadow);
+        }
+
+        .subtle-surface {
+            background-color: var(--bg-subtle);
+            border-color: var(--border-subtle);
+        }
+
+        .text-primary-var { color: var(--text-primary); }
+        .text-secondary-var { color: var(--text-secondary); }
+        .text-muted-var { color: var(--text-muted); }
+
+        /* Font Scaling Modes */
+        body.font-scale-sm {
+            --fs-body: 0.9375rem;    /* 15px */
+            --fs-reading: 1.0rem;    /* 16px */
+            --fs-headline: 1.25rem;  /* 20px */
+        }
+        body.font-scale-md {
+            --fs-body: 1.0rem;       /* 16px */
+            --fs-reading: 1.09375rem;/* 17.5px */
+            --fs-headline: 1.375rem; /* 22px */
+        }
+        body.font-scale-lg {
+            --fs-body: 1.09375rem;   /* 17.5px */
+            --fs-reading: 1.21875rem;/* 19.5px */
+            --fs-headline: 1.5625rem;/* 25px */
+        }
+
+        .reading-summary {
+            font-size: var(--fs-reading);
+            line-height: 1.78;
+        }
+
+        .reading-bullet {
+            font-size: var(--fs-body);
+            line-height: 1.72;
+        }
+
+        .card-headline {
+            font-size: var(--fs-headline);
+            line-height: 1.35;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 7px; height: 7px; }
+        ::-webkit-scrollbar-track { background: var(--bg-subtle); }
+        ::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col">
+<body class="theme-warm font-scale-md antialiased min-h-screen flex flex-col">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <!-- Top Sticky Header -->
+    <header class="sticky top-0 z-40 border-b backdrop-blur-md transition duration-200" style="background-color: var(--bg-header); border-color: var(--border-card);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Brand Title -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
-                        <i class="fa-solid fa-newspaper text-lg"></i>
+            <div class="flex items-center justify-between h-20">
+                
+                <!-- Logo & Branding -->
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-book-open-reader text-xl"></i>
                     </div>
                     <div>
-                        <div class="flex items-center space-x-2">
-                            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Editorial Intellect</h1>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Standalone App
+                        <div class="flex items-center space-x-2.5">
+                            <h1 class="text-xl sm:text-2xl font-black tracking-tight" style="color: var(--text-primary);">Editorial Intellect</h1>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border" style="background-color: var(--bg-subtle); color: var(--accent-primary); border-color: var(--border-card);">
+                                <i class="fa-solid fa-shield-halved mr-1 text-[11px]"></i> Eye-Safe Reader
                             </span>
                         </div>
-                        <p class="text-xs text-slate-500">Daily Multi-Source Editorial Aggregator & Analytical Synthesis</p>
+                        <p class="text-xs sm:text-sm font-medium" style="color: var(--text-muted);">
+                            Daily Multi-Source Editorial Synthesis & Policy Analysis
+                        </p>
                     </div>
                 </div>
 
-                <!-- Header Actions & Meta -->
-                <div class="flex items-center space-x-4">
-                    <div class="hidden md:flex flex-col text-right">
-                        <span class="text-xs font-medium text-slate-700" id="currentDateDisplay">Loading date...</span>
-                        <span class="text-[10px] text-slate-400">Compiled: __GENERATED_AT__</span>
+                <!-- Eye Comfort Controls (Theme & Font Size) -->
+                <div class="flex items-center space-x-3">
+                    
+                    <!-- Font Zoom Controls -->
+                    <div class="hidden sm:flex items-center rounded-xl p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);" title="Adjust Text Size">
+                        <span class="text-xs font-bold px-2" style="color: var(--text-muted);">Text:</span>
+                        <button onclick="setFontScale('sm')" id="fontBtn-sm" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A-</button>
+                        <button onclick="setFontScale('md')" id="fontBtn-md" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A</button>
+                        <button onclick="setFontScale('lg')" id="fontBtn-lg" class="px-2.5 py-1 text-xs font-bold rounded-lg transition">A+</button>
                     </div>
-                    <button onclick="window.location.reload()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition" title="Reload page">
-                        <i class="fa-solid fa-rotate text-sm"></i>
-                    </button>
+
+                    <!-- Theme Switcher Pills -->
+                    <div class="flex items-center rounded-xl p-1 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                        <button onclick="setTheme('warm')" id="themeBtn-warm" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Warm Paper (Kindle Sepia Mode - Blue Light Free)">
+                            <i class="fa-solid fa-book text-amber-600"></i>
+                            <span class="hidden md:inline">Warm Paper</span>
+                        </button>
+                        <button onclick="setTheme('day')" id="themeBtn-day" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Clean Daylight Mode">
+                            <i class="fa-solid fa-sun text-amber-500"></i>
+                            <span class="hidden md:inline">Day</span>
+                        </button>
+                        <button onclick="setTheme('dark')" id="themeBtn-dark" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition" title="Night / OLED Dark Mode">
+                            <i class="fa-solid fa-moon text-indigo-400"></i>
+                            <span class="hidden md:inline">Night</span>
+                        </button>
+                    </div>
+
                 </div>
+
             </div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
         
-        <!-- Summary Stat Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fa-solid fa-file-lines"></i>
+        <!-- Quick Insight Stats Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl" style="background-color: var(--accent-bg); color: var(--accent-primary);">
+                    <i class="fa-solid fa-newspaper"></i>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-slate-900" id="statTotalArticles">0</div>
-                    <div class="text-xs text-slate-500">Editorials Analyzed</div>
+                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight" id="statTotalArticles">0</div>
+                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Editorials Synthesized</div>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-rose-50 text-rose-700 border border-rose-200">
                     <i class="fa-solid fa-language"></i>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-slate-900" id="statEenaduCount">0</div>
-                    <div class="text-xs text-slate-500">Eenadu (తెలుగు)</div>
+                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rose-700" id="statEenaduCount">0</div>
+                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">ఈనాడు (Eenadu Telugu)</div>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-blue-50 text-blue-700 border border-blue-200">
+                    <i class="fa-solid fa-feather-pointed"></i>
+                </div>
+                <div>
+                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-700" id="statEnglishCount">0</div>
+                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Hindu, Express & PIB</div>
+                </div>
+            </div>
+
+            <div class="card-surface p-4 sm:p-5 rounded-2xl border flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
                     <i class="fa-solid fa-layer-group"></i>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-slate-900" id="statEnglishCount">0</div>
-                    <div class="text-xs text-slate-500">National / Official</div>
-                </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fa-solid fa-shapes"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-bold text-slate-900" id="statThemesCount">0</div>
-                    <div class="text-xs text-slate-500">Policy Themes</div>
+                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-700" id="statThemesCount">0</div>
+                    <div class="text-xs sm:text-sm font-semibold" style="color: var(--text-muted);">Governance Themes</div>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- 2-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
-            <!-- Left Sidebar: Filters & Date Navigator -->
+            <!-- Left Sidebar Navigation -->
             <aside class="lg:col-span-1 space-y-6">
                 
                 <!-- Day-Wise Date Navigator -->
-                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-                        <span><i class="fa-regular fa-calendar-days mr-1.5 text-indigo-500"></i> Date Archive</span>
-                        <span class="text-[10px] text-slate-400 font-normal" id="dateArchiveCount"></span>
+                <div class="card-surface rounded-2xl border p-5">
+                    <h2 class="text-xs font-bold uppercase tracking-wider mb-3.5 flex items-center justify-between" style="color: var(--text-muted);">
+                        <span><i class="fa-regular fa-calendar-check mr-2" style="color: var(--accent-primary);"></i> Daily Archive</span>
+                        <span class="text-xs font-semibold" id="dateArchiveCount"></span>
                     </h2>
                     
-                    <div class="space-y-1" id="dateListContainer">
+                    <div class="space-y-1.5" id="dateListContainer">
                         <!-- Populated by JS -->
                     </div>
                 </div>
 
                 <!-- Theme Filter -->
-                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-                        <span><i class="fa-solid fa-tags mr-1.5 text-indigo-500"></i> Filter by Theme</span>
-                        <button onclick="clearThemeFilter()" class="text-[10px] text-indigo-600 hover:underline">Reset</button>
-                    </h2>
+                <div class="card-surface rounded-2xl border p-5">
+                    <div class="flex items-center justify-between mb-3.5">
+                        <h2 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">
+                            <i class="fa-solid fa-tags mr-2" style="color: var(--accent-primary);"></i> Themes
+                        </h2>
+                        <button onclick="clearThemeFilter()" class="text-xs font-bold hover:underline" style="color: var(--accent-primary);">Reset</button>
+                    </div>
                     
-                    <div class="flex flex-wrap gap-1.5" id="themePillsContainer">
+                    <div class="flex flex-wrap gap-2" id="themePillsContainer">
                         <!-- Populated by JS -->
                     </div>
                 </div>
 
                 <!-- Scope Filter -->
-                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-                        <i class="fa-solid fa-globe mr-1.5 text-indigo-500"></i> Scope
+                <div class="card-surface rounded-2xl border p-5">
+                    <h2 class="text-xs font-bold uppercase tracking-wider mb-3.5" style="color: var(--text-muted);">
+                        <i class="fa-solid fa-compass mr-2" style="color: var(--accent-primary);"></i> Scope
                     </h2>
-                    <div class="flex flex-wrap gap-1.5" id="scopePillsContainer">
+                    <div class="flex flex-wrap gap-2" id="scopePillsContainer">
                         <!-- Populated by JS -->
                     </div>
                 </div>
 
-                <!-- Quick Tips for UPSC / Policy Aspirants -->
-                <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-900">
-                    <div class="font-semibold mb-1 flex items-center">
-                        <i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i> Exam & Policy Utility
+                <!-- Reading Tip -->
+                <div class="rounded-2xl p-5 border text-xs leading-relaxed" style="background-color: var(--bg-subtle); border-color: var(--border-card); color: var(--text-secondary);">
+                    <div class="font-bold mb-1.5 flex items-center text-sm" style="color: var(--text-primary);">
+                        <i class="fa-solid fa-eye text-emerald-600 mr-2"></i> Eye Comfort Advice
                     </div>
-                    <p class="text-indigo-700 leading-relaxed">
-                        Every editorial is analyzed for constitutional articles, statutory acts, economic data, and civil services syllabus mapping.
-                    </p>
+                    Switch between <strong>Warm Paper</strong> for ambient daylight and <strong>Night</strong> mode in dimly lit rooms to minimize digital eye fatigue while reading extended analyses.
                 </div>
 
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="lg:col-span-3 space-y-5">
+            <!-- Main Content: Articles & Search -->
+            <main class="lg:col-span-3 space-y-6">
                 
-                <!-- Filter Controls Bar -->
-                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-4">
+                <!-- Search & Source Tabs Bar -->
+                <div class="card-surface rounded-2xl border p-5 space-y-4">
                     
                     <!-- Search Input -->
                     <div class="relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base" style="color: var(--text-muted);">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
                         <input 
                             type="text" 
                             id="searchInput" 
-                            oninput="onSearchChange()"
-                            placeholder="Search editorials, keywords, Telugu terms (e.g., రాజ్యాంగం), Acts, or GDP..." 
-                            class="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-                        />
-                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
-                            <i class="fa-solid fa-circle-xmark text-sm"></i>
+                            oninput="onSearchChange()" 
+                            placeholder="Search editorials by title, key terms, Supreme Court verdicts, acts, or themes..." 
+                            class="w-full pl-11 pr-11 py-3.5 rounded-xl border text-sm sm:text-base font-medium outline-none transition focus:ring-2 focus:ring-indigo-500"
+                            style="background-color: var(--bg-main); color: var(--text-primary); border-color: var(--border-card);"
+                        >
+                        <button 
+                            id="clearSearchBtn" 
+                            onclick="clearSearch()" 
+                            class="hidden absolute inset-y-0 right-0 pr-4 flex items-center hover:opacity-80 transition"
+                            style="color: var(--text-muted);"
+                        >
+                            <i class="fa-solid fa-circle-xmark text-lg"></i>
                         </button>
                     </div>
 
-                    <!-- Source-Wise Navigation Tabs -->
-                    <div class="flex items-center overflow-x-auto space-x-2 pb-1 border-b border-slate-100 custom-scrollbar" id="sourceTabsContainer">
-                        <!-- Populated by JS -->
-                    </div>
-
-                    <!-- Active Filters Badge Row -->
-                    <div class="flex items-center justify-between text-xs text-slate-500 pt-1" id="filterStatsBar">
-                        <div class="flex items-center space-x-2">
-                            <span>Showing <strong class="text-slate-900" id="filteredCount">0</strong> articles</span>
-                            <span id="activeFilterTags" class="flex items-center space-x-1.5"></span>
+                    <!-- Source Selection Tabs -->
+                    <div class="flex items-center justify-between border-t pt-4 flex-wrap gap-3" style="border-color: var(--border-subtle);">
+                        <div class="flex flex-wrap gap-2" id="sourceTabsContainer">
+                            <!-- Populated by JS -->
                         </div>
-                        <button onclick="resetAllFilters()" class="text-slate-400 hover:text-indigo-600 transition flex items-center space-x-1">
-                            <i class="fa-solid fa-filter-circle-xmark"></i>
-                            <span>Clear Filters</span>
-                        </button>
+
+                        <div class="text-xs sm:text-sm font-semibold flex items-center space-x-2" style="color: var(--text-muted);">
+                            <span>Showing <strong class="font-extrabold text-sm sm:text-base" style="color: var(--text-primary);" id="filteredCount">0</strong> articles</span>
+                            <button onclick="resetAllFilters()" class="text-xs font-bold hover:underline ml-2" style="color: var(--accent-primary);">
+                                Clear All
+                            </button>
+                        </div>
                     </div>
 
                 </div>
 
-                <!-- Articles Grid Container -->
-                <div id="articlesList" class="space-y-4">
-                    <!-- Populated dynamically by JS -->
+                <!-- Articles List Container -->
+                <div id="articlesList" class="space-y-6">
+                    <!-- Populated by JS -->
                 </div>
 
                 <!-- Empty State -->
-                <div id="emptyState" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
-                    <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-4">
-                        <i class="fa-solid fa-folder-open"></i>
+                <div id="emptyState" class="hidden card-surface rounded-2xl border p-12 text-center space-y-3">
+                    <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-2xl" style="background-color: var(--bg-subtle); color: var(--text-muted);">
+                        <i class="fa-solid fa-filter-circle-xmark"></i>
                     </div>
-                    <h3 class="text-base font-semibold text-slate-800 mb-1">No Editorials Match Your Criteria</h3>
-                    <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">Try clearing some filters or searching for alternative topics or keywords.</p>
-                    <button onclick="resetAllFilters()" class="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
-                        Reset All Filters
+                    <h3 class="text-lg font-bold" style="color: var(--text-primary);">No Editorials Found</h3>
+                    <p class="text-sm max-w-md mx-auto" style="color: var(--text-muted);">No articles matched the selected date, source, theme, or search criteria. Try clearing search filters.</p>
+                    <button onclick="resetAllFilters()" class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                        Reset Filters
                     </button>
                 </div>
 
             </main>
+
         </div>
 
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center space-x-2">
-                <span class="font-semibold text-slate-700">Editorial Intellect Agent</span>
-                <span>•</span>
-                <span>Automated Daily Digest (11:30 AM IST)</span>
+    <footer class="mt-16 border-t py-8 text-center text-xs sm:text-sm font-medium transition duration-200" style="background-color: var(--bg-header); border-color: var(--border-card); color: var(--text-muted);">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+                <strong>Editorial Intellect</strong> — Autonomous Daily Multi-Source Policy Synthesizer
             </div>
             <div class="flex items-center space-x-4">
-                <span>Sources: Eenadu • The Hindu • Indian Express • PIB</span>
+                <span>Autonomous Pipeline</span>
                 <span>•</span>
-                <span class="text-indigo-600 font-medium">Antigravity 2.0</span>
+                <span>Hosted on GitHub Pages</span>
             </div>
         </div>
     </footer>
 
-    <!-- Application Script & Data Store -->
+    <!-- Client-Side Interactive Logic -->
     <script>
-        // Injected Database Records
         const RAW_EDITORIALS = __EDITORIALS_JSON__;
         const AVAILABLE_DATES = __DATES_JSON__;
 
-        // State Store
-        let state = {
-            selectedDate: 'ALL',
+        const state = {
+            selectedDate: AVAILABLE_DATES.length > 0 ? AVAILABLE_DATES[0] : 'ALL',
             selectedSource: 'ALL',
             selectedTheme: 'ALL',
             selectedScope: 'ALL',
             searchQuery: '',
-            expandedCards: {}
+            expandedCards: {},
+            theme: localStorage.getItem('editorial_theme') || 'warm',
+            fontScale: localStorage.getItem('editorial_font_scale') || 'md'
         };
 
-        // Source Metadata Configuration
         const SOURCE_CONFIG = {
             'Eenadu': {
-                label: 'Eenadu (తెలుగు)',
-                icon: 'fa-feather-pointed',
-                badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
-                headerBorder: 'border-l-4 border-rose-600',
-                tag: 'EENADU'
+                label: 'ఈనాడు (Eenadu)',
+                icon: 'fa-language',
+                badgeBg: 'bg-rose-50 text-rose-800 border-rose-300 font-bold',
+                headerBorder: 'border-l-[5px] border-rose-600',
+                btnClass: 'hover:bg-rose-50 hover:text-rose-700'
             },
             'The Hindu': {
                 label: 'The Hindu',
-                icon: 'fa-book-open',
-                badgeBg: 'bg-slate-100 text-slate-800 border-slate-300',
-                headerBorder: 'border-l-4 border-slate-800',
-                tag: 'THE HINDU'
+                icon: 'fa-landmark',
+                badgeBg: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
+                headerBorder: 'border-l-[5px] border-slate-900',
+                btnClass: 'hover:bg-blue-50 hover:text-blue-900'
             },
             'Indian Express': {
-                label: 'The Indian Express',
-                icon: 'fa-bolt',
-                badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
-                headerBorder: 'border-l-4 border-orange-600',
-                tag: 'INDIAN EXPRESS'
+                label: 'Indian Express',
+                icon: 'fa-feather',
+                badgeBg: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
+                headerBorder: 'border-l-[5px] border-amber-600',
+                btnClass: 'hover:bg-amber-50 hover:text-amber-800'
             },
             'PIB': {
-                label: 'Official / PIB',
-                icon: 'fa-landmark',
-                badgeBg: 'bg-teal-50 text-teal-700 border-teal-200',
-                headerBorder: 'border-l-4 border-teal-600',
-                tag: 'PIB / GOVT'
+                label: 'PIB (Official)',
+                icon: 'fa-bullhorn',
+                badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
+                headerBorder: 'border-l-[5px] border-emerald-600',
+                btnClass: 'hover:bg-emerald-50 hover:text-emerald-800'
             }
         };
 
-        // Initialization
-        document.addEventListener('DOMContentLoaded', () => {
-            if (AVAILABLE_DATES.length > 0) {
-                // Default to latest date
-                state.selectedDate = AVAILABLE_DATES[0];
-            }
-            updateHeaderDate();
-            renderDateList();
-            renderSourceTabs();
-            renderThemePills();
-            renderScopePills();
-            applyFilters();
-            calculateSummaryStats();
-        });
-
-        function updateHeaderDate() {
-            const el = document.getElementById('currentDateDisplay');
-            if (state.selectedDate && state.selectedDate !== 'ALL') {
-                const parts = state.selectedDate.split('-');
-                if (parts.length === 3) {
-                    const d = new Date(parts[0], parts[1] - 1, parts[2]);
-                    el.innerText = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-                } else {
-                    el.innerText = state.selectedDate;
+        // Theme and Font Scale Controls
+        function setTheme(mode) {
+            state.theme = mode;
+            localStorage.setItem('editorial_theme', mode);
+            document.body.className = `theme-${mode} font-scale-${state.fontScale} antialiased min-h-screen flex flex-col`;
+            
+            // Update active buttons
+            ['warm', 'day', 'dark'].forEach(m => {
+                const btn = document.getElementById(`themeBtn-${m}`);
+                if (btn) {
+                    if (m === mode) {
+                        btn.style.backgroundColor = 'var(--bg-card)';
+                        btn.style.boxShadow = 'var(--card-shadow)';
+                        btn.style.color = 'var(--text-primary)';
+                    } else {
+                        btn.style.backgroundColor = 'transparent';
+                        btn.style.boxShadow = 'none';
+                        btn.style.color = 'var(--text-muted)';
+                    }
                 }
-            } else {
-                el.innerText = 'All Dates Archive';
-            }
+            });
         }
 
-        function calculateSummaryStats() {
-            document.getElementById('statTotalArticles').innerText = RAW_EDITORIALS.length;
-            const eenaduCount = RAW_EDITORIALS.filter(e => e.source === 'Eenadu').length;
-            const englishCount = RAW_EDITORIALS.length - eenaduCount;
-            document.getElementById('statEenaduCount').innerText = eenaduCount;
-            document.getElementById('statEnglishCount').innerText = englishCount;
+        function setFontScale(scale) {
+            state.fontScale = scale;
+            localStorage.setItem('editorial_font_scale', scale);
+            document.body.className = `theme-${state.theme} font-scale-${scale} antialiased min-h-screen flex flex-col`;
 
+            ['sm', 'md', 'lg'].forEach(s => {
+                const btn = document.getElementById(`fontBtn-${s}`);
+                if (btn) {
+                    if (s === scale) {
+                        btn.style.backgroundColor = 'var(--bg-card)';
+                        btn.style.boxShadow = 'var(--card-shadow)';
+                        btn.style.color = 'var(--text-primary)';
+                    } else {
+                        btn.style.backgroundColor = 'transparent';
+                        btn.style.boxShadow = 'none';
+                        btn.style.color = 'var(--text-muted)';
+                    }
+                }
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('statTotalArticles').innerText = RAW_EDITORIALS.length;
+            document.getElementById('statEenaduCount').innerText = RAW_EDITORIALS.filter(e => e.source === 'Eenadu').length;
+            document.getElementById('statEnglishCount').innerText = RAW_EDITORIALS.filter(e => e.source !== 'Eenadu').length;
+            
             const themes = new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean));
             document.getElementById('statThemesCount').innerText = themes.size;
         }
 
         function renderDateList() {
             const container = document.getElementById('dateListContainer');
-            document.getElementById('dateArchiveCount').innerText = `${AVAILABLE_DATES.length} dates`;
+            document.getElementById('dateArchiveCount').innerText = `${AVAILABLE_DATES.length} Days`;
 
             let html = `
-                <button onclick="selectDate('ALL')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between ${state.selectedDate === 'ALL' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}">
-                    <span><i class="fa-solid fa-calendar-check mr-2 text-slate-400"></i> All Available Dates</span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700">${RAW_EDITORIALS.length}</span>
+                <button onclick="selectDate('ALL')" class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-between ${
+                    state.selectedDate === 'ALL'
+                        ? 'text-white bg-indigo-600 shadow-sm'
+                        : 'hover:opacity-80'
+                }" style="${state.selectedDate === 'ALL' ? '' : 'color: var(--text-secondary); background-color: var(--bg-subtle);'}">
+                    <span><i class="fa-solid fa-calendar-week mr-2"></i> All Available Dates</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full ${state.selectedDate === 'ALL' ? 'bg-indigo-800 text-white' : 'border'}" style="${state.selectedDate === 'ALL' ? '' : 'border-color: var(--border-card);'}">${RAW_EDITORIALS.length}</span>
                 </button>
             `;
 
-            AVAILABLE_DATES.forEach((dateStr, idx) => {
-                const count = RAW_EDITORIALS.filter(e => e.date === dateStr).length;
-                const isSelected = state.selectedDate === dateStr;
-                let label = dateStr;
-                if (idx === 0) label += " (Latest)";
-
+            AVAILABLE_DATES.forEach(dt => {
+                const count = RAW_EDITORIALS.filter(e => e.date === dt).length;
+                const isSelected = state.selectedDate === dt;
                 html += `
-                    <button onclick="selectDate('${dateStr}')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                        <span><i class="fa-regular fa-calendar mr-2 ${isSelected ? 'text-white' : 'text-slate-400'}"></i> ${label}</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-600'}">${count}</span>
+                    <button onclick="selectDate('${dt}')" class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-between ${
+                        isSelected
+                            ? 'text-white bg-indigo-600 shadow-sm'
+                            : 'hover:opacity-80'
+                    }" style="${isSelected ? '' : 'color: var(--text-secondary); background-color: var(--bg-subtle);'}">
+                        <span><i class="fa-regular fa-calendar mr-2"></i> ${dt}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full ${isSelected ? 'bg-indigo-800 text-white' : 'border'}" style="${isSelected ? '' : 'border-color: var(--border-card);'}">${count}</span>
                     </button>
                 `;
             });
@@ -426,26 +543,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             let html = '';
             sources.forEach(src => {
-                const isAll = src === 'ALL';
-                const count = isAll 
-                    ? (state.selectedDate === 'ALL' ? RAW_EDITORIALS.length : RAW_EDITORIALS.filter(e => e.date === state.selectedDate).length)
-                    : RAW_EDITORIALS.filter(e => e.source === src && (state.selectedDate === 'ALL' || e.date === state.selectedDate)).length;
-                
                 const isSelected = state.selectedSource === src;
-                const label = isAll ? 'All Sources' : (SOURCE_CONFIG[src]?.label || src);
-                const icon = isAll ? 'fa-globe' : (SOURCE_CONFIG[src]?.icon || 'fa-newspaper');
+                let label = src === 'ALL' ? 'All Sources' : (SOURCE_CONFIG[src]?.label || src);
+                let count = RAW_EDITORIALS.filter(e => {
+                    const matchDate = state.selectedDate === 'ALL' || e.date === state.selectedDate;
+                    const matchSrc = src === 'ALL' || e.source === src;
+                    return matchDate && matchSrc;
+                }).length;
 
                 html += `
-                    <button onclick="selectSource('${src}')" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2 border ${
-                        isSelected 
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-                    }">
-                        <i class="fa-solid ${icon} ${isSelected ? 'text-indigo-400' : 'text-slate-400'}"></i>
+                    <button onclick="selectSource('${src}')" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 ${
+                        isSelected
+                            ? 'text-white bg-indigo-600 shadow-sm'
+                            : 'border hover:opacity-85'
+                    }" style="${isSelected ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">
                         <span>${label}</span>
-                        <span class="px-1.5 py-0.2 rounded-full text-[10px] ${
-                            isSelected ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
-                        }">${count}</span>
+                        <span class="text-xs px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-indigo-800 text-white' : 'border'}" style="${isSelected ? '' : 'border-color: var(--border-card);'}">${count}</span>
                     </button>
                 `;
             });
@@ -458,21 +571,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const allThemes = Array.from(new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean))).sort();
 
             let html = `
-                <button onclick="selectTheme('ALL')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                <button onclick="selectTheme('ALL')" class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition ${
                     state.selectedTheme === 'ALL' 
-                        ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }">All Themes</button>
+                        ? 'text-white bg-indigo-600 border-indigo-600' 
+                        : 'hover:opacity-85'
+                }" style="${state.selectedTheme === 'ALL' ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">All Themes</button>
             `;
 
             allThemes.forEach(th => {
                 const isSelected = state.selectedTheme === th;
                 html += `
-                    <button onclick="selectTheme('${th}')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                    <button onclick="selectTheme('${th}')" class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition ${
                         isSelected 
-                            ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }">${th}</button>
+                            ? 'text-white bg-indigo-600 border-indigo-600' 
+                            : 'hover:opacity-85'
+                    }" style="${isSelected ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">${th}</button>
                 `;
             });
 
@@ -484,21 +597,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const allScopes = Array.from(new Set(RAW_EDITORIALS.map(e => e.scope).filter(Boolean))).sort();
 
             let html = `
-                <button onclick="selectScope('ALL')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                <button onclick="selectScope('ALL')" class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition ${
                     state.selectedScope === 'ALL' 
-                        ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }">All Scopes</button>
+                        ? 'text-white bg-indigo-600 border-indigo-600' 
+                        : 'hover:opacity-85'
+                }" style="${state.selectedScope === 'ALL' ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">All Scopes</button>
             `;
 
             allScopes.forEach(sc => {
                 const isSelected = state.selectedScope === sc;
                 html += `
-                    <button onclick="selectScope('${sc}')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                    <button onclick="selectScope('${sc}')" class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition ${
                         isSelected 
-                            ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }">${sc}</button>
+                            ? 'text-white bg-indigo-600 border-indigo-600' 
+                            : 'hover:opacity-85'
+                    }" style="${isSelected ? '' : 'background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);'}">${sc}</button>
                 `;
             });
 
@@ -507,7 +620,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function selectDate(dateStr) {
             state.selectedDate = dateStr;
-            updateHeaderDate();
             renderDateList();
             renderSourceTabs();
             applyFilters();
@@ -570,7 +682,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     btn.innerHTML = '<span>Show Less</span> <i class="fa-solid fa-chevron-up text-xs"></i>';
                 } else {
                     section.classList.add('hidden');
-                    btn.innerHTML = '<span>Deep Analysis & Characteristics</span> <i class="fa-solid fa-chevron-down text-xs"></i>';
+                    btn.innerHTML = '<span>Deep Analysis & Impact</span> <i class="fa-solid fa-chevron-down text-xs"></i>';
                 }
             }
         }
@@ -588,19 +700,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function applyFilters() {
             const filtered = RAW_EDITORIALS.filter(item => {
-                // Date check
                 if (state.selectedDate !== 'ALL' && item.date !== state.selectedDate) return false;
-                
-                // Source check
                 if (state.selectedSource !== 'ALL' && item.source !== state.selectedSource) return false;
-
-                // Theme check
                 if (state.selectedTheme !== 'ALL' && item.theme !== state.selectedTheme) return false;
-
-                // Scope check
                 if (state.selectedScope !== 'ALL' && item.scope !== state.selectedScope) return false;
 
-                // Search query check
                 if (state.searchQuery) {
                     const q = state.searchQuery;
                     const matchOriginal = (item.original_title || '').toLowerCase().includes(q);
@@ -643,9 +747,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 const srcMeta = SOURCE_CONFIG[item.source] || {
                     label: item.source,
                     icon: 'fa-newspaper',
-                    badgeBg: 'bg-slate-100 text-slate-800 border-slate-200',
-                    headerBorder: 'border-l-4 border-slate-600',
-                    tag: item.source
+                    badgeBg: 'bg-slate-100 text-slate-800 border-slate-300 font-bold',
+                    headerBorder: 'border-l-[5px] border-slate-600'
                 };
 
                 const isTelugu = item.source === 'Eenadu';
@@ -655,8 +758,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 let bulletsHtml = '';
                 if (Array.isArray(item.key_bullet_points) && item.key_bullet_points.length > 0) {
                     bulletsHtml = item.key_bullet_points.map(pt => `
-                        <li class="flex items-start text-xs text-slate-700 leading-relaxed">
-                            <i class="fa-solid fa-circle-check text-indigo-500 mt-1 mr-2 flex-shrink-0 text-[10px]"></i>
+                        <li class="flex items-start reading-bullet font-medium" style="color: var(--text-primary);">
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full mr-3 mt-1 flex-shrink-0 text-xs font-bold" style="background-color: var(--accent-bg); color: var(--accent-primary);">
+                                <i class="fa-solid fa-check text-[10px]"></i>
+                            </span>
                             <span>${pt}</span>
                         </li>
                     `).join('');
@@ -678,21 +783,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 let impactHtml = '';
                 if (shortImpact || longImpact) {
                     impactHtml = `
-                        <div class="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100/60">
-                            <h5 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2 flex items-center">
-                                <i class="fa-solid fa-chart-line text-indigo-600 mr-1.5"></i> Impact Assessment
+                        <div class="rounded-2xl p-5 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                            <h5 class="text-xs font-bold uppercase tracking-wider mb-3 flex items-center" style="color: var(--accent-primary);">
+                                <i class="fa-solid fa-chart-line mr-2"></i> Strategic Impact Assessment
                             </h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
                                 ${shortImpact ? `
-                                    <div class="bg-white p-3 rounded-lg border border-indigo-100">
-                                        <span class="font-semibold text-slate-800 block mb-1">⚡ Short-Term Impact:</span>
-                                        <p class="text-slate-600 leading-relaxed">${shortImpact}</p>
+                                    <div class="card-surface p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1 text-emerald-700">⚡ Short-Term Impact:</span>
+                                        <p class="leading-relaxed font-medium" style="color: var(--text-secondary);">${shortImpact}</p>
                                     </div>
                                 ` : ''}
                                 ${longImpact ? `
-                                    <div class="bg-white p-3 rounded-lg border border-indigo-100">
-                                        <span class="font-semibold text-slate-800 block mb-1">🌐 Long-Term / Structural:</span>
-                                        <p class="text-slate-600 leading-relaxed">${longImpact}</p>
+                                    <div class="card-surface p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1 text-indigo-700">🌐 Long-Term / Structural:</span>
+                                        <p class="leading-relaxed font-medium" style="color: var(--text-secondary);">${longImpact}</p>
                                     </div>
                                 ` : ''}
                             </div>
@@ -701,52 +806,52 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }
 
                 html += `
-                    <article class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition duration-200 overflow-hidden ${srcMeta.headerBorder}">
+                    <article class="card-surface rounded-2xl border transition duration-200 overflow-hidden ${srcMeta.headerBorder}">
                         
                         <!-- Top Metadata Header -->
-                        <div class="p-5 pb-3 border-b border-slate-100">
-                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                        <div class="p-6 sm:p-7 pb-4 border-b" style="border-color: var(--border-subtle);">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3.5">
                                 
-                                <div class="flex items-center space-x-2">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${srcMeta.badgeBg}">
-                                        <i class="fa-solid ${srcMeta.icon} mr-1.5 text-[11px]"></i> ${srcMeta.label}
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs border ${srcMeta.badgeBg}">
+                                        <i class="fa-solid ${srcMeta.icon} mr-1.5 text-xs"></i> ${srcMeta.label}
                                     </span>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">
-                                        <i class="fa-regular fa-calendar mr-1 text-[10px]"></i> ${item.date}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
+                                        <i class="fa-regular fa-calendar mr-1.5 text-xs"></i> ${item.date}
                                     </span>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--accent-bg); color: var(--accent-primary); border-color: var(--accent-border);">
                                         ${item.theme}
                                     </span>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
-                                        <i class="fa-solid fa-location-dot mr-1 text-[10px] text-slate-400"></i> ${item.scope}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border" style="background-color: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-card);">
+                                        <i class="fa-solid fa-location-dot mr-1 text-xs"></i> ${item.scope || 'National'}
                                     </span>
                                 </div>
 
-                                <div class="flex items-center space-x-2">
-                                    <button onclick="copySummary(${id})" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded transition relative" title="Copy Summary">
+                                <div class="flex items-center space-x-2.5">
+                                    <button onclick="copySummary(${id})" class="p-2 rounded-lg border transition relative hover:opacity-80" style="background-color: var(--bg-subtle); border-color: var(--border-card); color: var(--text-secondary);" title="Copy Summary Text">
                                         <i class="fa-regular fa-copy text-sm"></i>
-                                        <span id="copyTip-${id}" class="hidden absolute -bottom-7 right-0 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded shadow z-10 whitespace-nowrap">Copied!</span>
+                                        <span id="copyTip-${id}" class="hidden absolute -bottom-8 right-0 bg-slate-900 text-white text-xs px-2 py-0.5 rounded shadow z-10 whitespace-nowrap">Copied!</span>
                                     </button>
-                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition border border-slate-200">
-                                        <span>Read Original</span>
-                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition border hover:opacity-85" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
+                                        <span>Original Source</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                                     </a>
                                 </div>
 
                             </div>
 
-                            <!-- Headlines -->
-                            <div>
+                            <!-- Editorial Headlines -->
+                            <div class="mt-2">
                                 ${isTelugu ? `
-                                    <h3 class="text-lg font-bold text-slate-900 telugu-text leading-snug mb-1">
+                                    <h3 class="card-headline font-bold telugu-text mb-1.5" style="color: var(--text-primary);">
                                         ${item.original_title}
                                     </h3>
-                                    <h4 class="text-sm font-semibold text-slate-600 flex items-center">
-                                        <span class="text-xs font-normal uppercase tracking-wider text-slate-400 mr-2">[Eng Translation]</span>
+                                    <h4 class="text-sm sm:text-base font-semibold flex items-baseline flex-wrap" style="color: var(--text-secondary);">
+                                        <span class="text-xs font-bold uppercase tracking-wider mr-2 text-indigo-600">[Translation]</span>
                                         ${item.english_title}
                                     </h4>
                                 ` : `
-                                    <h3 class="text-lg font-bold text-slate-900 leading-snug">
+                                    <h3 class="card-headline font-bold" style="color: var(--text-primary);">
                                         ${item.english_title || item.original_title}
                                     </h3>
                                 `}
@@ -754,80 +859,80 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         </div>
 
                         <!-- Core Content Body -->
-                        <div class="p-5 space-y-4">
+                        <div class="p-6 sm:p-7 space-y-6">
                             
-                            <!-- Executive Summary -->
-                            <div>
-                                <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center">
-                                    <i class="fa-solid fa-quote-left text-indigo-500 mr-1.5"></i> Executive Summary
+                            <!-- Executive Summary Highlight Box -->
+                            <div class="rounded-2xl p-5 sm:p-6 border" style="background-color: var(--bg-subtle); border-color: var(--border-card);">
+                                <h5 class="text-xs font-bold uppercase tracking-wider mb-2 flex items-center" style="color: var(--accent-primary);">
+                                    <i class="fa-solid fa-quote-left mr-2"></i> Executive Summary
                                 </h5>
-                                <p id="summaryText-${id}" class="text-sm text-slate-700 leading-relaxed font-normal bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+                                <p id="summaryText-${id}" class="reading-summary font-normal leading-relaxed" style="color: var(--text-primary);">
                                     ${item.summary}
                                 </p>
                             </div>
 
-                            <!-- Key Bullet Points Takeaways -->
+                            <!-- Key Analytical Takeaways -->
                             ${bulletsHtml ? `
                                 <div>
-                                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center">
-                                        <i class="fa-solid fa-list-check text-indigo-500 mr-1.5"></i> Key Analytical Takeaways
+                                    <h5 class="text-xs font-bold uppercase tracking-wider mb-3.5 flex items-center" style="color: var(--text-muted);">
+                                        <i class="fa-solid fa-list-check mr-2 text-emerald-600"></i> Crucial Takeaways & Arguments
                                     </h5>
-                                    <ul class="space-y-1.5 pl-1">
+                                    <ul class="space-y-3.5 pl-0.5">
                                         ${bulletsHtml}
                                     </ul>
                                 </div>
                             ` : ''}
 
                             <!-- Expandable Deep Analysis & Characteristics Section -->
-                            <div id="details-${id}" class="${isExpanded ? '' : 'hidden'} space-y-4 pt-3 border-t border-slate-100">
+                            <div id="details-${id}" class="${isExpanded ? '' : 'hidden'} space-y-5 pt-4 border-t" style="border-color: var(--border-subtle);">
                                 
                                 <!-- Impact Matrix -->
                                 ${impactHtml}
 
                                 <!-- Characteristics & Acts Grid -->
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
                                     
                                     <!-- Tone & Stance -->
-                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <span class="font-semibold text-slate-700 block mb-1">
-                                            <i class="fa-solid fa-scale-balanced mr-1 text-slate-400"></i> Editorial Tone:
+                                    <div class="card-surface p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                            <i class="fa-solid fa-scale-balanced mr-1 text-indigo-500"></i> Editorial Tone:
                                         </span>
-                                        <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-white border border-slate-200 text-slate-800">
+                                        <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-card);">
                                             ${tone || 'Analytical'}
                                         </span>
                                     </div>
 
                                     <!-- Acts / Articles Cited -->
-                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <span class="font-semibold text-slate-700 block mb-1">
-                                            <i class="fa-solid fa-gavel mr-1 text-slate-400"></i> Constitutional / Legal Citations:
+                                    <div class="card-surface p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                            <i class="fa-solid fa-gavel mr-1 text-indigo-500"></i> Constitutional / Legal Citations:
                                         </span>
-                                        <div class="flex flex-wrap gap-1">
+                                        <div class="flex flex-wrap gap-1.5">
                                             ${Array.isArray(acts) && acts.length > 0 ? acts.map(a => `
-                                                <span class="px-1.5 py-0.5 bg-white border border-slate-200 text-slate-700 rounded text-[10px] font-mono">${a}</span>
-                                            `).join('') : '<span class="text-slate-400 italic">None specifically cited</span>'}
+                                                <span class="px-2 py-0.5 rounded text-xs font-bold font-mono border" style="background-color: var(--accent-bg); color: var(--accent-primary); border-color: var(--accent-border);">${a}</span>
+                                            `).join('') : '<span class="text-xs italic" style="color: var(--text-muted);">None specifically cited</span>'}
                                         </div>
                                     </div>
 
                                     <!-- Exam / Policy Relevance -->
-                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <span class="font-semibold text-slate-700 block mb-1">
-                                            <i class="fa-solid fa-graduation-cap mr-1 text-slate-400"></i> Policy / Exam Relevance:
+                                    <div class="card-surface p-4 rounded-xl border">
+                                        <span class="font-bold block mb-1.5" style="color: var(--text-secondary);">
+                                            <i class="fa-solid fa-graduation-cap mr-1 text-indigo-500"></i> Exam / Syllabus Relevance:
                                         </span>
-                                        <span class="text-slate-600 leading-relaxed">${examRel || 'General Governance / GS Paper'}</span>
+                                        <span class="font-medium text-xs sm:text-sm leading-relaxed" style="color: var(--text-primary);">${examRel || 'General Governance / GS Paper'}</span>
                                     </div>
 
                                 </div>
 
                                 <!-- Key Data & Statistics -->
                                 ${Array.isArray(stats) && stats.length > 0 ? `
-                                    <div class="bg-amber-50/50 p-3 rounded-lg border border-amber-200/60 text-xs">
-                                        <span class="font-semibold text-amber-900 block mb-1">
-                                            <i class="fa-solid fa-chart-pie mr-1 text-amber-600"></i> Key Data & Statistics Cited:
+                                    <div class="card-surface p-4 sm:p-5 rounded-xl border text-xs sm:text-sm">
+                                        <span class="font-bold block mb-2 text-amber-800">
+                                            <i class="fa-solid fa-chart-pie mr-1 text-amber-600"></i> Cited Statistics & Key Data Points:
                                         </span>
                                         <div class="flex flex-wrap gap-2">
                                             ${stats.map(s => `
-                                                <span class="inline-flex items-center px-2 py-0.5 bg-white border border-amber-200 text-amber-900 rounded font-mono text-[11px]">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-lg font-mono text-xs font-bold border bg-amber-50 text-amber-900 border-amber-200">
                                                     📊 ${s}
                                                 </span>
                                             `).join('')}
@@ -838,17 +943,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                             </div>
 
                             <!-- Card Footer Toggle -->
-                            <div class="pt-2 flex items-center justify-between">
+                            <div class="pt-3 flex items-center justify-between border-t" style="border-color: var(--border-subtle);">
                                 <button 
                                     id="toggleBtn-${id}" 
                                     onclick="toggleCard(${id})" 
-                                    class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition flex items-center space-x-1.5 py-1 px-2 rounded-md hover:bg-indigo-50"
+                                    class="text-xs sm:text-sm font-bold transition flex items-center space-x-2 py-1.5 px-3 rounded-lg border hover:opacity-85"
+                                    style="background-color: var(--bg-subtle); color: var(--accent-primary); border-color: var(--border-card);"
                                 >
-                                    <span>${isExpanded ? 'Show Less' : 'Deep Analysis & Characteristics'}</span>
+                                    <span>${isExpanded ? 'Show Less' : 'Deep Analysis & Impact'}</span>
                                     <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs"></i>
                                 </button>
                                 
-                                <span class="text-[10px] text-slate-400 font-mono">ID: #${id}</span>
+                                <span class="text-xs font-mono font-medium" style="color: var(--text-muted);">Article #${id}</span>
                             </div>
 
                         </div>
@@ -859,6 +965,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             container.innerHTML = html;
         }
+
+        // Initialize on page load
+        window.onload = function() {
+            setTheme(state.theme);
+            setFontScale(state.fontScale);
+            updateStats();
+            renderDateList();
+            renderSourceTabs();
+            renderThemePills();
+            renderScopePills();
+            applyFilters();
+        };
     </script>
 </body>
 </html>
