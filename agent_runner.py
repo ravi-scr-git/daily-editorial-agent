@@ -370,20 +370,28 @@ def generate_html_dashboard(conn: sqlite3.Connection, output_path: str = HTML_PA
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Editorial Intelligence | UPSC & Policy Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,300&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {{
             darkMode: 'class',
             theme: {{
                 extend: {{
                     fontFamily: {{
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        serif: ['Merriweather', 'serif']
+                        sans: ['Roboto', 'sans-serif'],
+                        roboto: ['Roboto', 'sans-serif'],
+                        telugu: ['Noto Sans Telugu', 'sans-serif'],
                     }}
                 }}
             }}
         }}
     </script>
+    <style>
+        body {{
+            font-family: 'Roboto', sans-serif;
+        }}
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
     <!-- Header -->
