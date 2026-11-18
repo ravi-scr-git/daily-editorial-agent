@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Editorial Aggregator & Analysis Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Noto Sans Telugu -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        telugu: ['Noto Sans Telugu', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            eenadu: '#B91C1C',
+                            eenaduBg: '#FEF2F2',
+                            hindu: '#0F172A',
+                            hinduBg: '#F8FAFC',
+                            express: '#C2410C',
+                            expressBg: '#FFF7ED',
+                            pib: '#0D9488',
+                            pibBg: '#F0FDFA',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .telugu-text {
+            font-family: 'Noto Sans Telugu', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+                        <i class="fa-solid fa-newspaper text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Editorial Intellect</h1>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Standalone App
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500">Daily Multi-Source Editorial Aggregator & Analytical Synthesis</p>
+                    </div>
+                </div>
+
+                <!-- Header Actions & Meta -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex flex-col text-right">
+                        <span class="text-xs font-medium text-slate-700" id="currentDateDisplay">Loading date...</span>
+                        <span class="text-[10px] text-slate-400">Compiled: 2026-11-18 14:56:28</span>
+                    </div>
+                    <button onclick="window.location.reload()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition" title="Reload page">
+                        <i class="fa-solid fa-rotate text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+        
+        <!-- Summary Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900" id="statTotalArticles">0</div>
+                    <div class="text-xs text-slate-500">Editorials Analyzed</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-language"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900" id="statEenaduCount">0</div>
+                    <div class="text-xs text-slate-500">Eenadu (తెలుగు)</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900" id="statEnglishCount">0</div>
+                    <div class="text-xs text-slate-500">National / Official</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-shapes"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900" id="statThemesCount">0</div>
+                    <div class="text-xs text-slate-500">Policy Themes</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Left Sidebar: Filters & Date Navigator -->
+            <aside class="lg:col-span-1 space-y-6">
+                
+                <!-- Day-Wise Date Navigator -->
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                        <span><i class="fa-regular fa-calendar-days mr-1.5 text-indigo-500"></i> Date Archive</span>
+                        <span class="text-[10px] text-slate-400 font-normal" id="dateArchiveCount"></span>
+                    </h2>
+                    
+                    <div class="space-y-1" id="dateListContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Theme Filter -->
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-tags mr-1.5 text-indigo-500"></i> Filter by Theme</span>
+                        <button onclick="clearThemeFilter()" class="text-[10px] text-indigo-600 hover:underline">Reset</button>
+                    </h2>
+                    
+                    <div class="flex flex-wrap gap-1.5" id="themePillsContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Scope Filter -->
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                        <i class="fa-solid fa-globe mr-1.5 text-indigo-500"></i> Scope
+                    </h2>
+                    <div class="flex flex-wrap gap-1.5" id="scopePillsContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Quick Tips for UPSC / Policy Aspirants -->
+                <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-900">
+                    <div class="font-semibold mb-1 flex items-center">
+                        <i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i> Exam & Policy Utility
+                    </div>
+                    <p class="text-indigo-700 leading-relaxed">
+                        Every editorial is analyzed for constitutional articles, statutory acts, economic data, and civil services syllabus mapping.
+                    </p>
+                </div>
+
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="lg:col-span-3 space-y-5">
+                
+                <!-- Filter Controls Bar -->
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-4">
+                    
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            oninput="onSearchChange()"
+                            placeholder="Search editorials, keywords, Telugu terms (e.g., రాజ్యాంగం), Acts, or GDP..." 
+                            class="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                        />
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-circle-xmark text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Source-Wise Navigation Tabs -->
+                    <div class="flex items-center overflow-x-auto space-x-2 pb-1 border-b border-slate-100 custom-scrollbar" id="sourceTabsContainer">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Active Filters Badge Row -->
+                    <div class="flex items-center justify-between text-xs text-slate-500 pt-1" id="filterStatsBar">
+                        <div class="flex items-center space-x-2">
+                            <span>Showing <strong class="text-slate-900" id="filteredCount">0</strong> articles</span>
+                            <span id="activeFilterTags" class="flex items-center space-x-1.5"></span>
+                        </div>
+                        <button onclick="resetAllFilters()" class="text-slate-400 hover:text-indigo-600 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-filter-circle-xmark"></i>
+                            <span>Clear Filters</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Articles Grid Container -->
+                <div id="articlesList" class="space-y-4">
+                    <!-- Populated dynamically by JS -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-4">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-800 mb-1">No Editorials Match Your Criteria</h3>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">Try clearing some filters or searching for alternative topics or keywords.</p>
+                    <button onclick="resetAllFilters()" class="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
+                        Reset All Filters
+                    </button>
+                </div>
+
+            </main>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-semibold text-slate-700">Editorial Intellect Agent</span>
+                <span>•</span>
+                <span>Automated Daily Digest (11:30 AM IST)</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span>Sources: Eenadu • The Hindu • Indian Express • PIB</span>
+                <span>•</span>
+                <span class="text-indigo-600 font-medium">Antigravity 2.0</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Application Script & Data Store -->
+    <script>
+        // Injected Database Records
+        const RAW_EDITORIALS = [{"id": 8, "date": "2026-11-18", "source": "PIB", "original_title": "PRESIDENT OF INDIA INAUGURATES THE YEAR-LONG GOLDEN JUBILEE CELEBRATIONS OF ICMR-NIMR", "english_title": "Golden Jubilee of ICMR-NIMR: Translational Research & India's Malaria Elimination Mission", "url": "https://www.pib.gov.in/PressReleseDetail.aspx?PRID=2337385&reg=3&lang=1", "theme": "Science & Tech", "summary": "Official release marking the Golden Jubilee of the ICMR - National Institute of Malaria Research. The explainer documents India's major advances in vector-borne disease control, indigenous diagnostics, genomic tracking of mosquito mutations, and the multi-sectoral roadmap to achieve zero indigenous malaria transmission.", "key_bullet_points": ["Celebration of five decades of high-impact epidemiological and biomedical research by ICMR-NIMR.", "Tremendous decline in Annual Parasite Incidence (API) across remote, tribal, and formerly hyper-endemic forested belts.", "Deployment of molecular biology, satellite climate monitoring, and automated entomological tracking tools.", "Synergy between the National Centre for Vector Borne Diseases Control (NCVBDC) and grassroots ASHA community health workers."], "scope": "National", "impact": {"short_term": "Intensified pre-monsoon surveillance, distribution of LLINs (Long-Lasting Insecticidal Nets), and rapid diagnostic availability.", "long_term": "Complete certification of malaria-free status by the World Health Organization, boosting public health resilience."}, "other_characteristics": {"tone": "Official & Developmental", "acts_and_articles_cited": ["National Strategic Plan for Malaria Elimination (2017-2030)", "National Health Mission (NHM)"], "key_data_and_statistics": ["Over 85% decline in malaria cases since 2015", "Zero malaria deaths targeted nationwide by 2030"], "exam_policy_relevance": "GS-2 (Welfare schemes for vulnerable sections, Health governance) & GS-3 (Achievements of Indians in Science & Technology)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 7, "date": "2026-11-18", "source": "Indian Express", "original_title": "Putting together a clearer picture of women and work is a step forward", "english_title": "Deciphering Female Labor Force Dynamics: Measuring Unpaid Care Work & Removing Structural Barriers", "url": "https://indianexpress.com/article/opinion/editorials/india-women-workforce-unpaid-care-work-data-10965869/", "theme": "Social Justice", "summary": "Welcoming enhanced statistical methodologies that account for unpaid care work, this editorial examines the structural impediments restraining women's formal labor force participation. It emphasizes safe public transport, affordable institutional creches, and pay transparency as vital policy imperatives.", "key_bullet_points": ["Conventional labor metrics frequently overlook unpaid household responsibilities, creating an incomplete picture of women's true economic output.", "Time-Use Survey data demonstrates that Indian women perform disproportionately more hours of unpaid domestic and care work than men.", "Rising female literacy and educational attainment must be paired with dignified, formal non-agricultural job creation.", "Universal enforcement of crèche mandates under the Maternity Benefit Act and subsidised transit can significantly boost urban workforce retention."], "scope": "National", "impact": {"short_term": "Greater accuracy in macroeconomic labor reporting and targeted welfare allocations.", "long_term": "Higher Female Labor Force Participation Rate (FLFPR) driving potential 1.5-2% expansion in annual GDP growth."}, "other_characteristics": {"tone": "Empathetic & Reformist", "acts_and_articles_cited": ["Periodic Labour Force Survey (PLFS)", "Maternity Benefit (Amendment) Act 2017", "Code on Wages 2019"], "key_data_and_statistics": ["Time-Use Survey disparity ratios (8.4x care work by women)", "FLFPR recovery trends post-pandemic"], "exam_policy_relevance": "GS-1 (Role of Women and Women's Organization, Social Empowerment) & GS-3 (Employment and Inclusive Growth)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 6, "date": "2026-11-18", "source": "Indian Express", "original_title": "Six years later, mind the lags in government’s flagship PLI scheme", "english_title": "Production-Linked Incentives: Overcoming Disbursement Bottlenecks & Deepening Value Addition", "url": "https://indianexpress.com/article/opinion/editorials/pli-scheme-india-impact-assessment-niti-aayog-report-10964467/", "theme": "Economy", "summary": "The Indian Express provides an empirical review of the ₹1.97 lakh crore Production-Linked Incentive (PLI) scheme across 14 core sectors. While electronics manufacturing has witnessed record export surges, capital-intensive domains like solar modules, textiles, and specialty steel experience disbursement and domestic value addition lags.", "key_bullet_points": ["Mobile manufacturing and telecom equipment have achieved commendable scale, positioning India as a prominent global exporter.", "Only a modest fraction of the ₹1.97 lakh crore incentive budget has been disbursed due to rigid incremental production thresholds.", "High import reliance for raw sub-assemblies underscores the urgent need to deepen domestic value addition beyond basic assembly.", "Policy flexibility, mid-course milestone recalibration, and stronger MSME supplier linkages are critical for capital-heavy sectors."], "scope": "National & Global Supply Chains", "impact": {"short_term": "Faster administrative reconciliation and disbursement approvals for eligible manufacturers.", "long_term": "Enhanced manufacturing self-reliance, reduced trade deficit in high-tech components, and competitive industrial clusters."}, "other_characteristics": {"tone": "Analytical & Policy-Constructive", "acts_and_articles_cited": ["Production Linked Incentive (PLI) Guidelines", "National Manufacturing Policy", "Foreign Trade Policy 2023"], "key_data_and_statistics": ["₹1.97 lakh crore total outlay across 14 sectors", "Over $15B annual smartphone exports from India"], "exam_policy_relevance": "GS-3 (Effects of liberalization on the economy, changes in industrial policy and their effects on industrial growth)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 5, "date": "2026-11-18", "source": "The Hindu", "original_title": "All-too fallible: On India’s vote against moratorium on death penalty", "english_title": "All-Too Fallible: Capital Punishment and the Imperative of Human Rights Infallibility", "url": "https://www.thehindu.com/opinion/editorial/the-hindu-editorial-on-indias-vote-against-moratorium-on-death-penalty/article71713256.ece", "theme": "Social Justice", "summary": "Critiquing India's vote at the UN General Assembly opposing a moratorium on the death penalty, The Hindu argues that because no criminal justice system can claim absolute infallibility, irreversible penalties conflict with the humane evolution of constitutional rights and procedural due process.", "key_bullet_points": ["India defends retention under the 'rarest of rare' judicial doctrine established in Bachan Singh (1980) as a sovereign prerogative.", "Over 112 sovereign nations have enacted complete statutory abolition, reflecting an irreversible international legal trend.", "Socio-economic marginalization severely prejudices the quality of legal defense available to indigent death-row convicts.", "Law Commission of India (262nd Report) previously recommended phased abolition for all offences barring terrorism and waging war."], "scope": "Global & National", "impact": {"short_term": "Continuance of death sentences awarded by trial courts subject to rigorous appellate review.", "long_term": "Evolving constitutional jurisprudence on mandatory mitigation hearings and compassionate commutation under Article 72/161."}, "other_characteristics": {"tone": "Reformist & Rights-Oriented", "acts_and_articles_cited": ["Article 21 (Right to Life)", "UNGA Moratorium on Death Penalty Resolution", "Law Commission of India 262nd Report", "Bachan Singh v. State of Punjab (1980)"], "key_data_and_statistics": ["112+ retentionist vs abolitionist countries", "Project 39A death penalty statistics across Indian prisons"], "exam_policy_relevance": "GS-2 (Structure, organization and functioning of the Judiciary, Fundamental Rights, International Conventions)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 4, "date": "2026-11-18", "source": "The Hindu", "original_title": "Elusive peace: On Kashmir terror attack", "english_title": "Elusive Peace: Restoration of Statehood is Essential for Jammu & Kashmir", "url": "https://www.thehindu.com/opinion/editorial/the-hindu-editoral-on-kashmir-terror-attack/article71713251.ece", "theme": "Polity & Governance", "summary": "Reflecting on recent terror incidents in Jammu and Kashmir, The Hindu emphasizes that security operations must be paired with genuine political empowerment. It urges the Union government to honor its solemn parliamentary promise of restoring full Statehood following successful democratic assembly elections to consolidate sustainable peace.", "key_bullet_points": ["Persistence of cross-border hybrid terrorism targeting non-local workers and infrastructure projects poses fresh operational challenges.", "Robust voter turnout in recent assembly elections demonstrated deep democratic aspirations of the civilian population.", "A bureaucratic Union Territory structure without full Statehood fuels administrative friction and political alienation.", "Unified intelligence coordination across the Line of Control and interior hinterlands is imperative to counter tactical surprises."], "scope": "State (Jammu & Kashmir)", "impact": {"short_term": "Enhanced tactical area-domination patrols and fortified security around high-value development corridors.", "long_term": "Constitutional normalization, revival of federal equilibrium, and sustainable socio-economic integration."}, "other_characteristics": {"tone": "Constructive & Institutionalist", "acts_and_articles_cited": ["Jammu and Kashmir Reorganisation Act 2019", "Supreme Court Constitutional Bench Verdict (Dec 2023)"], "key_data_and_statistics": ["Assembly election voter participation over 63%", "Infrastructure investment outlays in tunnel & rail projects"], "exam_policy_relevance": "GS-2 (Federalism, Union Territories, Devolution of Powers) & GS-3 (Security challenges and their management in border areas)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 3, "date": "2026-11-18", "source": "Eenadu", "original_title": "ఆర్థిక వికాసానికి సమతుల వ్యూహం", "english_title": "A Balanced Strategy for Resilient & Inclusive Economic Growth", "url": "https://www.eenadu.net/telugu-news/vyakyanam/general/1302/126209273", "theme": "Economy", "summary": "This column advocates for a synchronized economic model that balances capital-intensive infrastructure outlays with grassroot rural consumption. It argues that macro stability is incomplete without addressing rural real-wage stagnation and enhancing credit flows to micro, small, and medium enterprises.", "key_bullet_points": ["High headline GDP growth must be supported by sustained broad-based domestic consumption rather than narrow urban demand.", "Public capital expenditure (Capex) has driven multiplier effects, but private corporate investment requires stronger capacity utilization.", "Rural economy needs targeted productivity enhancement, agro-processing value addition, and climate-resilient crop support.", "Decentralized MSME clusters remain the primary engine for high-absorption employment generation and labor dignity."], "scope": "National", "impact": {"short_term": "Revival of consumer non-durable goods demand across tier-2/3 cities and rural belts.", "long_term": "Structural resilience against global demand contractions and reduction in rural-to-urban distress migration."}, "other_characteristics": {"tone": "Prescriptive & Constructive", "acts_and_articles_cited": ["FRBM Act (Fiscal Responsibility & Budget Management)", "Priority Sector Lending (PSL) Guidelines"], "key_data_and_statistics": ["7.2% projected annual growth trajectory", "Capex allocation growth over past 3 union budgets"], "exam_policy_relevance": "GS-3 (Indian Economy and issues relating to Planning, Mobilization of Resources, Growth, Development and Employment)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 2, "date": "2026-11-18", "source": "Eenadu", "original_title": "ఏఐ... ఇక ఇంట్లోకి!", "english_title": "AI and Humanoid Robotics: The Domestic Frontier", "url": "https://www.eenadu.net/telugu-news/vyakyanam/humanoid-robots-take-on-household-chores/1301/126209272", "theme": "Science & Tech", "summary": "Analyzing the rapid advent of embodied artificial intelligence and consumer humanoid robots, this commentary highlights the impending automation of household chores and elderly care. While welcoming labor relief and convenience, it calls for vigilant safeguards against intrusive domestic surveillance, high ownership costs, and algorithmic privacy leaks.", "key_bullet_points": ["Breakthrough convergence of multimodal large language models with mechanical robotics enabling autonomous domestic navigation.", "Potential to alleviate caregiver burdens in rapidly aging urban societies by assisting in chores, meal prep, and elder monitoring.", "Privacy risks stemming from constant camera feeds, ambient audio recording, and cloud-synchronized sensory maps inside homes.", "Necessity of stringent technical certification standards and robust data protection compliance before mass-market rollouts."], "scope": "Global", "impact": {"short_term": "High-end adoption among tech early-adopters and targeted institutional deployment in premium assisted-living facilities.", "long_term": "Fundamental reshaping of domestic labor economics, consumer electronics hardware supply chains, and residential privacy regulations."}, "other_characteristics": {"tone": "Analytical & Cautionary", "acts_and_articles_cited": ["Digital Personal Data Protection Act (DPDPA) 2023", "National Strategy on AI"], "key_data_and_statistics": ["Projected $38B consumer robotics market by 2030", "Over 20 global robotics firms developing bipedal domestic prototypes"], "exam_policy_relevance": "GS-3 (Science and Technology - Developments and their Applications and Effects in Everyday Life)."}, "created_at": "2026-11-18 09:23:24"}, {"id": 1, "date": "2026-11-18", "source": "Eenadu", "original_title": "దశాబ్దాలుగా మారని దుస్థితి!", "english_title": "The Decades-Long Persistent Plight of Public Healthcare", "url": "https://www.eenadu.net/telugu-news/editorial/general/1200/126209268", "theme": "Polity & Governance", "summary": "This editorial critically examines India's chronic underfunding of public healthcare, contrasting constitutional guarantees under Article 21 and Directive Principles with ground realities. Despite committee benchmarks recommending 3% of GDP by 2022, current public healthcare expenditure stands at merely 1.43%, forcing citizens to bear 43% out-of-pocket costs and pushing vulnerable families into medical debt.", "key_bullet_points": ["Indian Constitution affirms the State's fundamental obligation to preserve and protect public health (ప్రజారోగ్యం).", "High-Level Expert Group 15 years ago mandated 2.5% of GDP by 2017 and 3% by 2022; yet 2023-24 spending stagnated at 1.43% according to National Health Accounts (ఎన్‌హెచ్‌ఏ).", "2017 National Health Policy (జాతీయ వైద్య విధానం) urged States to allocate at least 8% of state budgets, but only Delhi, Rajasthan, and Odisha have adhered to it by 2025-26.", "Out-of-pocket medical expenditure (OOPE) remains distressing at 43%, causing widespread household impoverishment and debt traps.", "Urgent call to expand Jan Aushadhi Kendras (జనౌషధి కేంద్రాలు) and AMRIT pharmacy networks to ensure affordable essential therapeutics."], "scope": "National", "impact": {"short_term": "Continued high out-of-pocket expenditure straining middle and lower-income families seeking emergency secondary/tertiary care.", "long_term": "Depressed human capital formation, productivity constraints, and widening health disparities between proactive and lagging States."}, "other_characteristics": {"tone": "Critical & Reformist", "acts_and_articles_cited": ["Article 21 (Right to Life)", "Article 47 (Directive Principles)", "National Health Policy 2017", "National Health Accounts (NHA)"], "key_data_and_statistics": ["1.43% GDP public health spending", "43% out-of-pocket healthcare burden", "₹4,728 crore Jan Aushadhi sales vs ₹2 lakh crore overall pharma market"], "exam_policy_relevance": "UPSC / State PSC GS-2 (Issues relating to Development and Management of Social Sector/Services relating to Health)."}, "created_at": "2026-11-18 09:23:24"}];
+        const AVAILABLE_DATES = ["2026-11-18"];
+
+        // State Store
+        let state = {
+            selectedDate: 'ALL',
+            selectedSource: 'ALL',
+            selectedTheme: 'ALL',
+            selectedScope: 'ALL',
+            searchQuery: '',
+            expandedCards: {}
+        };
+
+        // Source Metadata Configuration
+        const SOURCE_CONFIG = {
+            'Eenadu': {
+                label: 'Eenadu (తెలుగు)',
+                icon: 'fa-feather-pointed',
+                badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+                headerBorder: 'border-l-4 border-rose-600',
+                tag: 'EENADU'
+            },
+            'The Hindu': {
+                label: 'The Hindu',
+                icon: 'fa-book-open',
+                badgeBg: 'bg-slate-100 text-slate-800 border-slate-300',
+                headerBorder: 'border-l-4 border-slate-800',
+                tag: 'THE HINDU'
+            },
+            'Indian Express': {
+                label: 'The Indian Express',
+                icon: 'fa-bolt',
+                badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
+                headerBorder: 'border-l-4 border-orange-600',
+                tag: 'INDIAN EXPRESS'
+            },
+            'PIB': {
+                label: 'Official / PIB',
+                icon: 'fa-landmark',
+                badgeBg: 'bg-teal-50 text-teal-700 border-teal-200',
+                headerBorder: 'border-l-4 border-teal-600',
+                tag: 'PIB / GOVT'
+            }
+        };
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            if (AVAILABLE_DATES.length > 0) {
+                // Default to latest date
+                state.selectedDate = AVAILABLE_DATES[0];
+            }
+            updateHeaderDate();
+            renderDateList();
+            renderSourceTabs();
+            renderThemePills();
+            renderScopePills();
+            applyFilters();
+            calculateSummaryStats();
+        });
+
+        function updateHeaderDate() {
+            const el = document.getElementById('currentDateDisplay');
+            if (state.selectedDate && state.selectedDate !== 'ALL') {
+                const parts = state.selectedDate.split('-');
+                if (parts.length === 3) {
+                    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                    el.innerText = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                } else {
+                    el.innerText = state.selectedDate;
+                }
+            } else {
+                el.innerText = 'All Dates Archive';
+            }
+        }
+
+        function calculateSummaryStats() {
+            document.getElementById('statTotalArticles').innerText = RAW_EDITORIALS.length;
+            const eenaduCount = RAW_EDITORIALS.filter(e => e.source === 'Eenadu').length;
+            const englishCount = RAW_EDITORIALS.length - eenaduCount;
+            document.getElementById('statEenaduCount').innerText = eenaduCount;
+            document.getElementById('statEnglishCount').innerText = englishCount;
+
+            const themes = new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean));
+            document.getElementById('statThemesCount').innerText = themes.size;
+        }
+
+        function renderDateList() {
+            const container = document.getElementById('dateListContainer');
+            document.getElementById('dateArchiveCount').innerText = `${AVAILABLE_DATES.length} dates`;
+
+            let html = `
+                <button onclick="selectDate('ALL')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between ${state.selectedDate === 'ALL' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}">
+                    <span><i class="fa-solid fa-calendar-check mr-2 text-slate-400"></i> All Available Dates</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700">${RAW_EDITORIALS.length}</span>
+                </button>
+            `;
+
+            AVAILABLE_DATES.forEach((dateStr, idx) => {
+                const count = RAW_EDITORIALS.filter(e => e.date === dateStr).length;
+                const isSelected = state.selectedDate === dateStr;
+                let label = dateStr;
+                if (idx === 0) label += " (Latest)";
+
+                html += `
+                    <button onclick="selectDate('${dateStr}')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
+                        <span><i class="fa-regular fa-calendar mr-2 ${isSelected ? 'text-white' : 'text-slate-400'}"></i> ${label}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-600'}">${count}</span>
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderSourceTabs() {
+            const container = document.getElementById('sourceTabsContainer');
+            const sources = ['ALL', 'Eenadu', 'The Hindu', 'Indian Express', 'PIB'];
+
+            let html = '';
+            sources.forEach(src => {
+                const isAll = src === 'ALL';
+                const count = isAll 
+                    ? (state.selectedDate === 'ALL' ? RAW_EDITORIALS.length : RAW_EDITORIALS.filter(e => e.date === state.selectedDate).length)
+                    : RAW_EDITORIALS.filter(e => e.source === src && (state.selectedDate === 'ALL' || e.date === state.selectedDate)).length;
+                
+                const isSelected = state.selectedSource === src;
+                const label = isAll ? 'All Sources' : (SOURCE_CONFIG[src]?.label || src);
+                const icon = isAll ? 'fa-globe' : (SOURCE_CONFIG[src]?.icon || 'fa-newspaper');
+
+                html += `
+                    <button onclick="selectSource('${src}')" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2 border ${
+                        isSelected 
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                    }">
+                        <i class="fa-solid ${icon} ${isSelected ? 'text-indigo-400' : 'text-slate-400'}"></i>
+                        <span>${label}</span>
+                        <span class="px-1.5 py-0.2 rounded-full text-[10px] ${
+                            isSelected ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
+                        }">${count}</span>
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderThemePills() {
+            const container = document.getElementById('themePillsContainer');
+            const allThemes = Array.from(new Set(RAW_EDITORIALS.map(e => e.theme).filter(Boolean))).sort();
+
+            let html = `
+                <button onclick="selectTheme('ALL')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                    state.selectedTheme === 'ALL' 
+                        ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                }">All Themes</button>
+            `;
+
+            allThemes.forEach(th => {
+                const isSelected = state.selectedTheme === th;
+                html += `
+                    <button onclick="selectTheme('${th}')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                        isSelected 
+                            ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }">${th}</button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderScopePills() {
+            const container = document.getElementById('scopePillsContainer');
+            const allScopes = Array.from(new Set(RAW_EDITORIALS.map(e => e.scope).filter(Boolean))).sort();
+
+            let html = `
+                <button onclick="selectScope('ALL')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                    state.selectedScope === 'ALL' 
+                        ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                }">All Scopes</button>
+            `;
+
+            allScopes.forEach(sc => {
+                const isSelected = state.selectedScope === sc;
+                html += `
+                    <button onclick="selectScope('${sc}')" class="text-xs px-2.5 py-1 rounded-md border transition ${
+                        isSelected 
+                            ? 'bg-indigo-600 text-white border-indigo-600 font-medium' 
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }">${sc}</button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function selectDate(dateStr) {
+            state.selectedDate = dateStr;
+            updateHeaderDate();
+            renderDateList();
+            renderSourceTabs();
+            applyFilters();
+        }
+
+        function selectSource(src) {
+            state.selectedSource = src;
+            renderSourceTabs();
+            applyFilters();
+        }
+
+        function selectTheme(theme) {
+            state.selectedTheme = theme;
+            renderThemePills();
+            applyFilters();
+        }
+
+        function clearThemeFilter() {
+            selectTheme('ALL');
+        }
+
+        function selectScope(sc) {
+            state.selectedScope = sc;
+            renderScopePills();
+            applyFilters();
+        }
+
+        function onSearchChange() {
+            const val = document.getElementById('searchInput').value;
+            state.searchQuery = val.trim().toLowerCase();
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', val.length === 0);
+            applyFilters();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            state.searchQuery = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            applyFilters();
+        }
+
+        function resetAllFilters() {
+            state.selectedSource = 'ALL';
+            state.selectedTheme = 'ALL';
+            state.selectedScope = 'ALL';
+            clearSearch();
+            renderSourceTabs();
+            renderThemePills();
+            renderScopePills();
+            applyFilters();
+        }
+
+        function toggleCard(id) {
+            state.expandedCards[id] = !state.expandedCards[id];
+            const section = document.getElementById(`details-${id}`);
+            const btn = document.getElementById(`toggleBtn-${id}`);
+            if (section && btn) {
+                if (state.expandedCards[id]) {
+                    section.classList.remove('hidden');
+                    btn.innerHTML = '<span>Show Less</span> <i class="fa-solid fa-chevron-up text-xs"></i>';
+                } else {
+                    section.classList.add('hidden');
+                    btn.innerHTML = '<span>Deep Analysis & Characteristics</span> <i class="fa-solid fa-chevron-down text-xs"></i>';
+                }
+            }
+        }
+
+        function copySummary(id) {
+            const el = document.getElementById(`summaryText-${id}`);
+            if (el) {
+                navigator.clipboard.writeText(el.innerText).then(() => {
+                    const tip = document.getElementById(`copyTip-${id}`);
+                    tip.classList.remove('hidden');
+                    setTimeout(() => tip.classList.add('hidden'), 2000);
+                });
+            }
+        }
+
+        function applyFilters() {
+            const filtered = RAW_EDITORIALS.filter(item => {
+                // Date check
+                if (state.selectedDate !== 'ALL' && item.date !== state.selectedDate) return false;
+                
+                // Source check
+                if (state.selectedSource !== 'ALL' && item.source !== state.selectedSource) return false;
+
+                // Theme check
+                if (state.selectedTheme !== 'ALL' && item.theme !== state.selectedTheme) return false;
+
+                // Scope check
+                if (state.selectedScope !== 'ALL' && item.scope !== state.selectedScope) return false;
+
+                // Search query check
+                if (state.searchQuery) {
+                    const q = state.searchQuery;
+                    const matchOriginal = (item.original_title || '').toLowerCase().includes(q);
+                    const matchEnglish = (item.english_title || '').toLowerCase().includes(q);
+                    const matchSummary = (item.summary || '').toLowerCase().includes(q);
+                    const matchTheme = (item.theme || '').toLowerCase().includes(q);
+                    const matchBullets = Array.isArray(item.key_bullet_points) 
+                        ? item.key_bullet_points.some(b => b.toLowerCase().includes(q))
+                        : false;
+                    const charStr = JSON.stringify(item.other_characteristics || '').toLowerCase();
+                    const matchChar = charStr.includes(q);
+
+                    if (!matchOriginal && !matchEnglish && !matchSummary && !matchTheme && !matchBullets && !matchChar) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            document.getElementById('filteredCount').innerText = filtered.length;
+            renderArticles(filtered);
+        }
+
+        function renderArticles(items) {
+            const container = document.getElementById('articlesList');
+            const emptyState = document.getElementById('emptyState');
+
+            if (items.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            let html = '';
+            items.forEach((item, idx) => {
+                const id = item.id || idx;
+                const srcMeta = SOURCE_CONFIG[item.source] || {
+                    label: item.source,
+                    icon: 'fa-newspaper',
+                    badgeBg: 'bg-slate-100 text-slate-800 border-slate-200',
+                    headerBorder: 'border-l-4 border-slate-600',
+                    tag: item.source
+                };
+
+                const isTelugu = item.source === 'Eenadu';
+                const isExpanded = !!state.expandedCards[id];
+
+                // Bullet points HTML
+                let bulletsHtml = '';
+                if (Array.isArray(item.key_bullet_points) && item.key_bullet_points.length > 0) {
+                    bulletsHtml = item.key_bullet_points.map(pt => `
+                        <li class="flex items-start text-xs text-slate-700 leading-relaxed">
+                            <i class="fa-solid fa-circle-check text-indigo-500 mt-1 mr-2 flex-shrink-0 text-[10px]"></i>
+                            <span>${pt}</span>
+                        </li>
+                    `).join('');
+                }
+
+                // Characteristics & metadata unpack
+                const chars = item.other_characteristics || {};
+                const acts = chars.acts_and_articles_cited || [];
+                const stats = chars.key_data_and_statistics || [];
+                const examRel = chars.exam_policy_relevance || '';
+                const tone = chars.tone || '';
+
+                // Impact unpack
+                const impact = item.impact || {};
+                const shortImpact = impact.short_term || '';
+                const longImpact = impact.long_term || '';
+
+                // Build Impact Box HTML
+                let impactHtml = '';
+                if (shortImpact || longImpact) {
+                    impactHtml = `
+                        <div class="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100/60">
+                            <h5 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2 flex items-center">
+                                <i class="fa-solid fa-chart-line text-indigo-600 mr-1.5"></i> Impact Assessment
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                ${shortImpact ? `
+                                    <div class="bg-white p-3 rounded-lg border border-indigo-100">
+                                        <span class="font-semibold text-slate-800 block mb-1">⚡ Short-Term Impact:</span>
+                                        <p class="text-slate-600 leading-relaxed">${shortImpact}</p>
+                                    </div>
+                                ` : ''}
+                                ${longImpact ? `
+                                    <div class="bg-white p-3 rounded-lg border border-indigo-100">
+                                        <span class="font-semibold text-slate-800 block mb-1">🌐 Long-Term / Structural:</span>
+                                        <p class="text-slate-600 leading-relaxed">${longImpact}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <article class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition duration-200 overflow-hidden ${srcMeta.headerBorder}">
+                        
+                        <!-- Top Metadata Header -->
+                        <div class="p-5 pb-3 border-b border-slate-100">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                                
+                                <div class="flex items-center space-x-2">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${srcMeta.badgeBg}">
+                                        <i class="fa-solid ${srcMeta.icon} mr-1.5 text-[11px]"></i> ${srcMeta.label}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">
+                                        <i class="fa-regular fa-calendar mr-1 text-[10px]"></i> ${item.date}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                        ${item.theme}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                        <i class="fa-solid fa-location-dot mr-1 text-[10px] text-slate-400"></i> ${item.scope}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="copySummary(${id})" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded transition relative" title="Copy Summary">
+                                        <i class="fa-regular fa-copy text-sm"></i>
+                                        <span id="copyTip-${id}" class="hidden absolute -bottom-7 right-0 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded shadow z-10 whitespace-nowrap">Copied!</span>
+                                    </button>
+                                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition border border-slate-200">
+                                        <span>Read Original</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    </a>
+                                </div>
+
+                            </div>
+
+                            <!-- Headlines -->
+                            <div>
+                                ${isTelugu ? `
+                                    <h3 class="text-lg font-bold text-slate-900 telugu-text leading-snug mb-1">
+                                        ${item.original_title}
+                                    </h3>
+                                    <h4 class="text-sm font-semibold text-slate-600 flex items-center">
+                                        <span class="text-xs font-normal uppercase tracking-wider text-slate-400 mr-2">[Eng Translation]</span>
+                                        ${item.english_title}
+                                    </h4>
+                                ` : `
+                                    <h3 class="text-lg font-bold text-slate-900 leading-snug">
+                                        ${item.english_title || item.original_title}
+                                    </h3>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Core Content Body -->
+                        <div class="p-5 space-y-4">
+                            
+                            <!-- Executive Summary -->
+                            <div>
+                                <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center">
+                                    <i class="fa-solid fa-quote-left text-indigo-500 mr-1.5"></i> Executive Summary
+                                </h5>
+                                <p id="summaryText-${id}" class="text-sm text-slate-700 leading-relaxed font-normal bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+                                    ${item.summary}
+                                </p>
+                            </div>
+
+                            <!-- Key Bullet Points Takeaways -->
+                            ${bulletsHtml ? `
+                                <div>
+                                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center">
+                                        <i class="fa-solid fa-list-check text-indigo-500 mr-1.5"></i> Key Analytical Takeaways
+                                    </h5>
+                                    <ul class="space-y-1.5 pl-1">
+                                        ${bulletsHtml}
+                                    </ul>
+                                </div>
+                            ` : ''}
+
+                            <!-- Expandable Deep Analysis & Characteristics Section -->
+                            <div id="details-${id}" class="${isExpanded ? '' : 'hidden'} space-y-4 pt-3 border-t border-slate-100">
+                                
+                                <!-- Impact Matrix -->
+                                ${impactHtml}
+
+                                <!-- Characteristics & Acts Grid -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    
+                                    <!-- Tone & Stance -->
+                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <span class="font-semibold text-slate-700 block mb-1">
+                                            <i class="fa-solid fa-scale-balanced mr-1 text-slate-400"></i> Editorial Tone:
+                                        </span>
+                                        <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-white border border-slate-200 text-slate-800">
+                                            ${tone || 'Analytical'}
+                                        </span>
+                                    </div>
+
+                                    <!-- Acts / Articles Cited -->
+                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <span class="font-semibold text-slate-700 block mb-1">
+                                            <i class="fa-solid fa-gavel mr-1 text-slate-400"></i> Constitutional / Legal Citations:
+                                        </span>
+                                        <div class="flex flex-wrap gap-1">
+                                            ${Array.isArray(acts) && acts.length > 0 ? acts.map(a => `
+                                                <span class="px-1.5 py-0.5 bg-white border border-slate-200 text-slate-700 rounded text-[10px] font-mono">${a}</span>
+                                            `).join('') : '<span class="text-slate-400 italic">None specifically cited</span>'}
+                                        </div>
+                                    </div>
+
+                                    <!-- Exam / Policy Relevance -->
+                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <span class="font-semibold text-slate-700 block mb-1">
+                                            <i class="fa-solid fa-graduation-cap mr-1 text-slate-400"></i> Policy / Exam Relevance:
+                                        </span>
+                                        <span class="text-slate-600 leading-relaxed">${examRel || 'General Governance / GS Paper'}</span>
+                                    </div>
+
+                                </div>
+
+                                <!-- Key Data & Statistics -->
+                                ${Array.isArray(stats) && stats.length > 0 ? `
+                                    <div class="bg-amber-50/50 p-3 rounded-lg border border-amber-200/60 text-xs">
+                                        <span class="font-semibold text-amber-900 block mb-1">
+                                            <i class="fa-solid fa-chart-pie mr-1 text-amber-600"></i> Key Data & Statistics Cited:
+                                        </span>
+                                        <div class="flex flex-wrap gap-2">
+                                            ${stats.map(s => `
+                                                <span class="inline-flex items-center px-2 py-0.5 bg-white border border-amber-200 text-amber-900 rounded font-mono text-[11px]">
+                                                    📊 ${s}
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                            </div>
+
+                            <!-- Card Footer Toggle -->
+                            <div class="pt-2 flex items-center justify-between">
+                                <button 
+                                    id="toggleBtn-${id}" 
+                                    onclick="toggleCard(${id})" 
+                                    class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition flex items-center space-x-1.5 py-1 px-2 rounded-md hover:bg-indigo-50"
+                                >
+                                    <span>${isExpanded ? 'Show Less' : 'Deep Analysis & Characteristics'}</span>
+                                    <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs"></i>
+                                </button>
+                                
+                                <span class="text-[10px] text-slate-400 font-mono">ID: #${id}</span>
+                            </div>
+
+                        </div>
+
+                    </article>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
