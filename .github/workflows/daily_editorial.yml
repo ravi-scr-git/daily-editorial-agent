@@ -3,7 +3,7 @@ name: Daily Editorial Pipeline
 on:
   schedule:
     # 11:30 AM IST is 06:00 AM UTC (IST = UTC + 5:30)
-    - cron: '0 6 * * *'
+    - cron: '15 4 * * *'
   workflow_dispatch:
 
 permissions:
