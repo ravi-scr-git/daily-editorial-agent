@@ -47,6 +47,7 @@ jobs:
       - name: Execute Autonomous Scraper & Analysis Pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENAI_API_VERSION: 'v1beta'
         run: |
           python agent_runner.py
 

@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
+os.environ.setdefault("GOOGLE_GENAI_API_VERSION", "v1beta")
+
 # Playwright sync API
 from playwright.sync_api import sync_playwright, Browser, Page
 
@@ -125,7 +127,7 @@ def analyze_article_with_gemini(raw_text: str, source: str, url: str, original_t
         print("  [Warning] GEMINI_API_KEY environment variable not found. Skipping AI analysis.")
         return None
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key, http_options=types.HttpOptions(api_version="v1beta"))
     ist_date = get_current_ist_date()
 
     prompt = f"""
@@ -143,26 +145,30 @@ def analyze_article_with_gemini(raw_text: str, source: str, url: str, original_t
     Ensure 'date' is '{ist_date}'.
     """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=EditorialAnalysis,
-                temperature=0.2,
-            ),
-        )
-        data = json.loads(response.text)
-        return EditorialAnalysis(**data)
-    except Exception as e:
-        print(f"  [Error] Gemini analysis failed for {url}: {e}")
-        return None
+    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=EditorialAnalysis,
+                    temperature=0.2,
+                ),
+            )
+            data = json.loads(response.text)
+            return EditorialAnalysis(**data)
+        except Exception as e:
+            print(f"  [Error] Gemini analysis ({model_name}) failed for {url}: {e}")
+            continue
+
+    return None
 
 # =====================================================================
 # Scrapers for the 4 Portals (Playwright)
 # =====================================================================
-def scrape_eenadu(browser: Browser, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
+def scrape_eenadu(browser: Any, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
     print("\n[1/4] Scraping Eenadu (Telugu Editorial)...")
     results = []
     page = browser.new_page()
@@ -170,15 +176,17 @@ def scrape_eenadu(browser: Browser, conn: sqlite3.Connection) -> List[EditorialA
         page.goto("https://www.eenadu.net/editorial", timeout=30000, wait_until="domcontentloaded")
         page.wait_for_timeout(3000)
 
-        articles = page.locator("a[href*='/editorial/']").all()
+        articles = page.locator("a[href*='/editorial/'], a[href*='/vyakyanam/']").all()
         visited = set()
-        for a in articles[:4]:
+        for a in articles:
             href = a.get_attribute("href")
             title = a.inner_text().strip()
             if not href or not title or href in visited:
                 continue
             if not href.startswith("http"):
                 href = f"https://www.eenadu.net{href}"
+            if href.rstrip("/").endswith("/editorial") or href.rstrip("/").endswith("/vyakyanam"):
+                continue
             visited.add(href)
 
             if is_url_in_db(href, conn):
@@ -199,13 +207,15 @@ def scrape_eenadu(browser: Browser, conn: sqlite3.Connection) -> List[EditorialA
                 print(f"  Failed to load Eenadu article: {ex}")
             finally:
                 art_page.close()
+            if len(results) >= 3:
+                break
     except Exception as e:
         print(f"  Eenadu scraper error: {e}")
     finally:
         page.close()
     return results
 
-def scrape_the_hindu(browser: Browser, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
+def scrape_the_hindu(browser: Any, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
     print("\n[2/4] Scraping The Hindu (Editorials)...")
     results = []
     page = browser.new_page()
@@ -213,15 +223,17 @@ def scrape_the_hindu(browser: Browser, conn: sqlite3.Connection) -> List[Editori
         page.goto("https://www.thehindu.com/opinion/editorial/", timeout=30000, wait_until="domcontentloaded")
         page.wait_for_timeout(3000)
 
-        links = page.locator("h3.title a, div.story-card a[href*='/opinion/editorial/']").all()
+        links = page.locator("h3.title a, div.story-card a[href*='/opinion/editorial/'], a[href*='/opinion/editorial/']").all()
         visited = set()
-        for a in links[:4]:
+        for a in links:
             href = a.get_attribute("href")
             title = a.inner_text().strip()
             if not href or not title or href in visited:
                 continue
             if not href.startswith("http"):
                 href = f"https://www.thehindu.com{href}"
+            if href.rstrip("/").endswith("/opinion/editorial"):
+                continue
             visited.add(href)
 
             if is_url_in_db(href, conn):
@@ -231,7 +243,7 @@ def scrape_the_hindu(browser: Browser, conn: sqlite3.Connection) -> List[Editori
             art_page = browser.new_page()
             try:
                 art_page.goto(href, timeout=30000, wait_until="domcontentloaded")
-                paragraphs = art_page.locator("div.articlebodycontent p, div[itemprop='articleBody'] p").all_inner_texts()
+                paragraphs = art_page.locator("div.articlebodycontent p, div[itemprop='articleBody'] p, article p").all_inner_texts()
                 body_text = "\n\n".join(paragraphs)
                 if body_text:
                     print(f"  Analyzing The Hindu: {title[:45]}...")
@@ -243,13 +255,15 @@ def scrape_the_hindu(browser: Browser, conn: sqlite3.Connection) -> List[Editori
                 print(f"  Failed to load The Hindu article: {ex}")
             finally:
                 art_page.close()
+            if len(results) >= 2:
+                break
     except Exception as e:
         print(f"  The Hindu scraper error: {e}")
     finally:
         page.close()
     return results
 
-def scrape_indian_express(browser: Browser, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
+def scrape_indian_express(browser: Any, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
     print("\n[3/4] Scraping Indian Express (Editorials)...")
     results = []
     page = browser.new_page()
@@ -257,12 +271,16 @@ def scrape_indian_express(browser: Browser, conn: sqlite3.Connection) -> List[Ed
         page.goto("https://indianexpress.com/section/opinion/editorials/", timeout=30000, wait_until="domcontentloaded")
         page.wait_for_timeout(3000)
 
-        links = page.locator("div.articles h2.title a, div.article-list a[href*='/article/opinion/editorials/']").all()
+        links = page.locator("a[href*='/article/opinion/editorials/']").all()
         visited = set()
-        for a in links[:4]:
+        for a in links:
             href = a.get_attribute("href")
             title = a.inner_text().strip()
             if not href or not title or href in visited:
+                continue
+            if not href.startswith("http"):
+                href = f"https://indianexpress.com{href}"
+            if href.rstrip("/").endswith("/opinion/editorials") or "/page/" in href:
                 continue
             visited.add(href)
 
@@ -273,8 +291,10 @@ def scrape_indian_express(browser: Browser, conn: sqlite3.Connection) -> List[Ed
             art_page = browser.new_page()
             try:
                 art_page.goto(href, timeout=30000, wait_until="domcontentloaded")
-                paragraphs = art_page.locator("div.story-details p, div#pcl-full-content p").all_inner_texts()
-                body_text = "\n\n".join(paragraphs)
+                paragraphs = art_page.locator("div#pcl-full-content p, div.story-details p, div.native_story_content p, article p").all_inner_texts()
+                body_text = "\n\n".join(paragraphs).strip()
+                if not body_text:
+                    body_text = art_page.locator("div#pcl-full-content, article").inner_text()
                 if body_text:
                     print(f"  Analyzing Indian Express: {title[:45]}...")
                     analysis = analyze_article_with_gemini(body_text, "Indian Express", href, title)
@@ -285,42 +305,50 @@ def scrape_indian_express(browser: Browser, conn: sqlite3.Connection) -> List[Ed
                 print(f"  Failed to load Express article: {ex}")
             finally:
                 art_page.close()
+            if len(results) >= 2:
+                break
     except Exception as e:
         print(f"  Indian Express scraper error: {e}")
     finally:
         page.close()
     return results
 
-def scrape_pib(browser: Browser, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
+def scrape_pib(browser: Any, conn: sqlite3.Connection) -> List[EditorialAnalysis]:
     print("\n[4/4] Scraping PIB (National Releases & Features)...")
     results = []
     page = browser.new_page()
     try:
-        page.goto("https://pib.gov.in/AllRelease.aspx", timeout=30000, wait_until="domcontentloaded")
+        # Use reg=3 (National) and lang=1 (English) to ensure English content
+        page.goto("https://pib.gov.in/AllRelease.aspx?reg=3&lang=1", timeout=30000, wait_until="domcontentloaded")
         page.wait_for_timeout(3000)
 
-        links = page.locator("ul.num li a[href*='PRID=']").all()
+        links = page.locator("a[href*='PRID='], a[href*='PressReleseDetail'], a[href*='PressReleasePage']").all()
         visited = set()
-        for a in links[:4]:
+        for a in links:
             href = a.get_attribute("href")
             title = a.inner_text().strip()
             if not href or not title or href in visited:
                 continue
             if not href.startswith("http"):
-                href = f"https://pib.gov.in/{href}"
+                href = f"https://pib.gov.in/{href.lstrip('/')}"
+            # Direct PressReleasePage has raw inline content without iframe nesting
+            direct_url = href.replace("PressReleseDetail.aspx", "PressReleasePage.aspx")
             visited.add(href)
+            visited.add(direct_url)
 
-            if is_url_in_db(href, conn):
+            if is_url_in_db(direct_url, conn) or is_url_in_db(href, conn):
                 print(f"  [Skipped - Exists] {title[:40]}...")
                 continue
 
             art_page = browser.new_page()
             try:
-                art_page.goto(href, timeout=30000, wait_until="domcontentloaded")
-                body_text = art_page.locator("div.innner-page-main-about-us").inner_text()
+                art_page.goto(direct_url, timeout=30000, wait_until="domcontentloaded")
+                body_text = art_page.locator("div.innner-page-main-about-us, div.ReleaseLang, div.BackgroundRelease").inner_text()
+                if not body_text:
+                    body_text = art_page.locator("body").inner_text()
                 if body_text:
                     print(f"  Analyzing PIB Release: {title[:45]}...")
-                    analysis = analyze_article_with_gemini(body_text, "PIB", href, title)
+                    analysis = analyze_article_with_gemini(body_text, "PIB", direct_url, title)
                     if analysis:
                         save_analysis(analysis, conn)
                         results.append(analysis)
@@ -328,6 +356,8 @@ def scrape_pib(browser: Browser, conn: sqlite3.Connection) -> List[EditorialAnal
                 print(f"  Failed to load PIB article: {ex}")
             finally:
                 art_page.close()
+            if len(results) >= 2:
+                break
     except Exception as e:
         print(f"  PIB scraper error: {e}")
     finally:
@@ -354,12 +384,17 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800}
+        )
         try:
-            scrape_eenadu(browser, conn)
-            scrape_the_hindu(browser, conn)
-            scrape_indian_express(browser, conn)
-            scrape_pib(browser, conn)
+            scrape_eenadu(context, conn)
+            scrape_the_hindu(context, conn)
+            scrape_indian_express(context, conn)
+            scrape_pib(context, conn)
         finally:
+            context.close()
             browser.close()
 
     generate_html_dashboard(conn)
